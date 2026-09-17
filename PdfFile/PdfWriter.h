@@ -45,6 +45,7 @@
 #include "../../DesktopEditor/xmlsec/src/include/Certificate.h"
 #include "SrcWriter/States.h"
 #include "SrcWriter/Annotation.h"
+#include "LogicalTextMetrics.h"
 
 namespace PdfWriter
 {
@@ -64,6 +65,8 @@ namespace Aggplus
 	class CImage;
 }
 
+class CLogicalPdfWriterState;
+
 class CPdfWriter
 {
 public:
@@ -71,6 +74,8 @@ public:
 	~CPdfWriter();
 	int          SaveToFile(const std::wstring& wsPath);
 	int          SaveToMemory(BYTE** pData, int* pLength);
+	const std::string& GetLastLogicalTextDiagnostic() const;
+	CLogicalTextMetrics GetLogicalTextMetrics() const;
 	void         SetPassword(const std::wstring& wsPassword);
 	void         SetDocumentID(const std::wstring& wsDocumentID);
 	void         SetDocumentInfo(const std::wstring& wsTitle, const std::wstring& wsCreator, const std::wstring& wsSubject, const std::wstring& wsKeywords);
@@ -164,6 +169,7 @@ public:
 	HRESULT CommandDrawText      (const std::wstring& wsUnicodeText,                                                           const double& dX, const double& dY, const double& dW, const double& dH);
 	HRESULT CommandDrawTextEx    (const std::wstring& wsUnicodeText, const unsigned int* pGids, const unsigned int nGidsCount, const double& dX, const double& dY, const double& dW, const double& dH);
 	HRESULT CommandDrawTextCHAR2 (unsigned int* unUnicode, const unsigned int& unUnicodeCount, const unsigned int& unGid, const double& dX, const double& dY, const double& dW, const double& dH);
+	HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& oUnit);
 	//----------------------------------------------------------------------------------------
 	// Маркеры команд
 	//----------------------------------------------------------------------------------------
@@ -263,6 +269,7 @@ private:
 	void Reset();
 	bool IsValid();
 	bool IsPageValid();
+	bool FinalizeLogicalFonts();
 	void SetError();
 	void AddLink(PdfWriter::CPage* pPage, const double& dX, const double& dY, const double& dW, const double& dH, const double& dDestX, const double& dDestY, const unsigned int& unDestPage);
 	unsigned char* EncodeString(const unsigned int* pUnicodes, const unsigned int& unUnicodesCount, const unsigned int* pGIDs = NULL);
@@ -306,6 +313,7 @@ private:
 
 	bool                         m_bValid;
 	bool                         m_bSplit;
+	CLogicalPdfWriterState*      m_pLogicalTextState;
 
 	friend class PdfWriter::RedactOutputDev;
 };

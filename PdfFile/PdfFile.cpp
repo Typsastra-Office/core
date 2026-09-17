@@ -619,6 +619,16 @@ int CPdfFile::SaveToFile(const std::wstring& wsPath)
 		return 1;
 	return m_pInternal->pWriter->SaveToFile(wsPath);
 }
+std::string CPdfFile::GetLastLogicalTextDiagnostic() const
+{
+	if (!m_pInternal->pWriter)
+		return "PDF writer is not initialized";
+	return m_pInternal->pWriter->GetLastLogicalTextDiagnostic();
+}
+CLogicalTextMetrics CPdfFile::GetLogicalTextMetrics() const
+{
+	return m_pInternal->pWriter ? m_pInternal->pWriter->GetLogicalTextMetrics() : CLogicalTextMetrics();
+}
 void CPdfFile::SetPassword(const std::wstring& wsPassword)
 {
 	if (m_pInternal->pWriter)
@@ -1220,6 +1230,12 @@ HRESULT CPdfFile::CommandDrawTextCHAR2(unsigned int* unUnicode, const unsigned i
 	if (!m_pInternal->pWriter)
 		return S_FALSE;
 	return m_pInternal->pWriter->CommandDrawTextCHAR2(unUnicode, unUnicodeCount, unGid, dX, dY, dW, dH);
+}
+HRESULT CPdfFile::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& oUnit)
+{
+	if (!m_pInternal->pWriter)
+		return S_FALSE;
+	return m_pInternal->pWriter->CommandDrawTextLogicalUnit(oUnit);
 }
 HRESULT CPdfFile::BeginCommand(const DWORD& lType)
 {

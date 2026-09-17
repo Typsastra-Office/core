@@ -107,6 +107,7 @@ ADD_FILES_FOR_EMBEDDED_CLASS_HEADER($$PWD_CUR/embed/TextMeasurerEmbed.h)
 ADD_FILES_FOR_EMBEDDED_CLASS_HEADER($$PWD_CUR/embed/ZipEmbed.h)
 
 include($$PWD_CUR/../graphics/pro/textshaper.pri)
+include($$PWD_CUR/../../Common/3dParty/icu/icu.pri)
 include($$PWD_CUR/../../Common/3dParty/openssl/openssl.pri)
 
 # downloader

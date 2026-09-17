@@ -27,6 +27,7 @@ public:
 	JSSmart<CJSValue> GetFontsDirectory();
 	JSSmart<CJSValue> GetFileString(JSSmart<CJSValue> file);
 	JSSmart<CJSValue> GetEditorType();
+	JSSmart<CJSValue> GetUnicodeWordSegments(JSSmart<CJSValue> text);
 	JSSmart<CJSValue> CheckNextChange();
 	JSSmart<CJSValue> GetCountChanges();
 	JSSmart<CJSValue> GetChangesFile(JSSmart<CJSValue> index);

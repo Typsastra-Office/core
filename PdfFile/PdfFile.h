@@ -43,6 +43,7 @@
 #include "../DesktopEditor/graphics/pro/Image.h"
 #include "../DesktopEditor/graphics/pro/officedrawingfile.h"
 #include "../DesktopEditor/xmlsec/src/include/Certificate.h"
+#include "LogicalTextMetrics.h"
 
 class CPdfFile_Private;
 class CConvertFromBinParams
@@ -165,6 +166,8 @@ public:
 
 	void CreatePdf    (bool isPDFA = false);
 	int  SaveToFile   (const std::wstring& wsPath);
+	std::string GetLastLogicalTextDiagnostic() const;
+	CLogicalTextMetrics GetLogicalTextMetrics() const;
 	void RotatePage   (int nRotate);
 	void SetPassword  (const std::wstring& wsPassword);
 	void SetDocumentID(const std::wstring& wsDocumentID);
@@ -277,6 +280,7 @@ public:
 	virtual HRESULT CommandDrawText      (const std::wstring& wsUnicodeText,                                                           const double& dX, const double& dY, const double& dW, const double& dH);
 	virtual HRESULT CommandDrawTextEx    (const std::wstring& wsUnicodeText, const unsigned int* pGids, const unsigned int nGidsCount, const double& dX, const double& dY, const double& dW, const double& dH);
 	virtual HRESULT CommandDrawTextCHAR2 (unsigned int* unUnicode, const unsigned int& unUnicodeCount, const unsigned int& unGid, const double& dX, const double& dY, const double& dW, const double& dH);
+	virtual HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& oUnit);
 	//----------------------------------------------------------------------------------------
 	// Маркеры команд
 	//----------------------------------------------------------------------------------------

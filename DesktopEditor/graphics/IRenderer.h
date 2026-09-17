@@ -1,4 +1,4 @@
-﻿/*
+/*
  * (c) Copyright Ascensio System SIA 2010-2023
  *
  * This program is a free software product. You can redistribute it and/or
@@ -174,6 +174,29 @@ namespace Aggplus {
 	class CGraphicsPath;
 }
 
+enum class ERendererLogicalWritingMode : unsigned char
+{
+	Horizontal = 0,
+	Vertical = 1
+};
+
+struct CRendererLogicalComponent
+{
+	unsigned int SourceGid = 0;
+	double RelativeX = 0.0;
+	double RelativeY = 0.0;
+};
+
+struct CRendererLogicalUnit
+{
+	std::vector<unsigned int> Unicode;
+	ERendererLogicalWritingMode WritingMode = ERendererLogicalWritingMode::Horizontal;
+	double LogicalAdvance = 0.0;
+	double VisualX = 0.0;
+	double VisualY = 0.0;
+	std::vector<CRendererLogicalComponent> Components;
+};
+
 // IRenderer
 class IRenderer : public IGrObject
 {
@@ -306,7 +329,30 @@ public:
 		return CommandDrawTextExCHAR(c, (LONG)gid, x, y, w, h);
 	}
 
-	//-------- Маркеры для команд ---------------------------------------------------------------
+	virtual HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
+	{
+		if (unit.Unicode.empty() || unit.Components.empty())
+			return S_FALSE;
+		const CRendererLogicalComponent& first = unit.Components[0];
+		HRESULT result = CommandDrawTextCHAR2(
+			const_cast<unsigned int*>(unit.Unicode.data()),
+			static_cast<unsigned int>(unit.Unicode.size()), first.SourceGid,
+			unit.VisualX + first.RelativeX, unit.VisualY + first.RelativeY, 0, 0);
+		if (S_OK != result)
+			return result;
+		for (std::size_t index = 1; index < unit.Components.size(); ++index)
+		{
+			const CRendererLogicalComponent& component = unit.Components[index];
+			result = CommandDrawTextExCHAR(32, static_cast<LONG>(component.SourceGid),
+			                               unit.VisualX + component.RelativeX,
+			                               unit.VisualY + component.RelativeY, 0, 0);
+			if (S_OK != result)
+				return result;
+		}
+		return S_OK;
+	}
+
+	//-------- Markers for commands ---------------------------------------------------------------
 	virtual HRESULT BeginCommand(const DWORD& lType)	= 0;
 	virtual HRESULT EndCommand(const DWORD& lType)		= 0;
 

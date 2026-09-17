@@ -17,6 +17,7 @@ namespace NSNativeControlEmbed
 	FUNCTION_WRAPPER_V8_0(_GetFontsDirectory, GetFontsDirectory)
 	FUNCTION_WRAPPER_V8_1(_GetFileString, GetFileString)
 	FUNCTION_WRAPPER_V8_0(_GetEditorType, GetEditorType)
+	FUNCTION_WRAPPER_V8_1(_GetUnicodeWordSegments, GetUnicodeWordSegments)
 	FUNCTION_WRAPPER_V8_0(_CheckNextChange, CheckNextChange)
 	FUNCTION_WRAPPER_V8_0(_GetCountChanges, GetCountChanges)
 	FUNCTION_WRAPPER_V8_1(_GetChangesFile, GetChangesFile)
@@ -47,6 +48,7 @@ namespace NSNativeControlEmbed
 		NSV8Objects::Template_Set(result, "GetFontsDirectory",	_GetFontsDirectory);
 		NSV8Objects::Template_Set(result, "GetFileString",	_GetFileString);
 		NSV8Objects::Template_Set(result, "GetEditorType",	_GetEditorType);
+		NSV8Objects::Template_Set(result, "GetUnicodeWordSegments",	_GetUnicodeWordSegments);
 		NSV8Objects::Template_Set(result, "CheckNextChange",	_CheckNextChange);
 		NSV8Objects::Template_Set(result, "GetCountChanges",	_GetCountChanges);
 		NSV8Objects::Template_Set(result, "GetChangesFile",	_GetChangesFile);

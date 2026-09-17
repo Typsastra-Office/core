@@ -14,6 +14,7 @@
 -(JSValue*) GetFontsDirectory;
 -(JSValue*) GetFileString : (JSValue*)file;
 -(JSValue*) GetEditorType;
+-(JSValue*) GetUnicodeWordSegments : (JSValue*)text;
 -(JSValue*) CheckNextChange;
 -(JSValue*) GetCountChanges;
 -(JSValue*) GetChangesFile : (JSValue*)index;
@@ -49,6 +50,7 @@ FUNCTION_WRAPPER_JS_1(GetFontBinary, GetFontBinary)
 FUNCTION_WRAPPER_JS_0(GetFontsDirectory, GetFontsDirectory)
 FUNCTION_WRAPPER_JS_1(GetFileString, GetFileString)
 FUNCTION_WRAPPER_JS_0(GetEditorType, GetEditorType)
+FUNCTION_WRAPPER_JS_1(GetUnicodeWordSegments, GetUnicodeWordSegments)
 FUNCTION_WRAPPER_JS_0(CheckNextChange, CheckNextChange)
 FUNCTION_WRAPPER_JS_0(GetCountChanges, GetCountChanges)
 FUNCTION_WRAPPER_JS_1(GetChangesFile, GetChangesFile)

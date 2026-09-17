@@ -1,6 +1,11 @@
 #include "NativeControlEmbed.h"
 #include "../server.h"
 
+#include <unicode/ubrk.h>
+#include <unicode/ustring.h>
+
+#include <vector>
+
 JSSmart<CJSValue> CNativeControlEmbed::SetFilePath(JSSmart<CJSValue> path)
 {
 	m_pInternal->SetFilePath(path->toStringW());
@@ -78,6 +83,47 @@ JSSmart<CJSValue> CNativeControlEmbed::GetFileString(JSSmart<CJSValue> file)
 JSSmart<CJSValue> CNativeControlEmbed::GetEditorType()
 {
 	return CJSContext::createString(m_pInternal->m_strEditorType);
+}
+
+JSSmart<CJSValue> CNativeControlEmbed::GetUnicodeWordSegments(JSSmart<CJSValue> text)
+{
+	std::wstring sText = text->toStringW();
+	if (sText.empty())
+		return CJSContext::createArray(0);
+
+	UErrorCode eStatus = U_ZERO_ERROR;
+	int32_t nTextLength = 0;
+	u_strFromWCS(NULL, 0, &nTextLength, sText.c_str(), (int32_t)sText.length(), &eStatus);
+	if (U_BUFFER_OVERFLOW_ERROR != eStatus)
+		return CJSContext::createUndefined();
+
+	eStatus = U_ZERO_ERROR;
+	std::vector<UChar> arText(nTextLength + 1);
+	u_strFromWCS(arText.data(), (int32_t)arText.size(), &nTextLength,
+	             sText.c_str(), (int32_t)sText.length(), &eStatus);
+	if (U_FAILURE(eStatus))
+		return CJSContext::createUndefined();
+
+	UBreakIterator* pIterator = ubrk_open(UBRK_WORD, NULL, arText.data(), nTextLength, &eStatus);
+	if (U_FAILURE(eStatus) || !pIterator)
+		return CJSContext::createUndefined();
+
+	std::vector<int32_t> arSegments;
+	int32_t nStart = ubrk_first(pIterator);
+	for (int32_t nEnd = ubrk_next(pIterator); UBRK_DONE != nEnd; nEnd = ubrk_next(pIterator))
+	{
+		int32_t nRuleStatus = ubrk_getRuleStatus(pIterator);
+		arSegments.push_back(nStart);
+		arSegments.push_back(nEnd);
+		arSegments.push_back(nRuleStatus >= UBRK_WORD_NUMBER && nRuleStatus < UBRK_WORD_IDEO_LIMIT ? 1 : 0);
+		nStart = nEnd;
+	}
+	ubrk_close(pIterator);
+
+	CJSArray* pResult = CJSContext::createArray((int)arSegments.size());
+	for (size_t nIndex = 0; nIndex < arSegments.size(); ++nIndex)
+		pResult->set((int)nIndex, (int)arSegments[nIndex]);
+	return pResult;
 }
 
 JSSmart<CJSValue> CNativeControlEmbed::CheckNextChange()
