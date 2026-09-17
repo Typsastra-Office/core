@@ -859,6 +859,13 @@ public:
 				SET_FONT_PRIORITY(L"Courier New");
 				SET_FONT_PRIORITY(L"Carlito");
 				SET_FONT_PRIORITY(L"Segoe UI");
+				// Khmer fallbacks. These fonts also contain Basic Latin, so they must
+				// stay below the Latin fonts above; the first entry wins for Khmer.
+				SET_FONT_PRIORITY(L"Khmer OS");
+				SET_FONT_PRIORITY(L"Khmer OS System");
+				SET_FONT_PRIORITY(L"Khmer UI");
+				SET_FONT_PRIORITY(L"Leelawadee UI");
+				SET_FONT_PRIORITY(L"Noto Sans Khmer");
 				SET_FONT_PRIORITY(L"SimSun");
 				SET_FONT_PRIORITY(L"MS Gothic");
 				SET_FONT_PRIORITY(L"Nirmala UI");
