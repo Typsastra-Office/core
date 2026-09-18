@@ -1305,6 +1305,122 @@ namespace NSDocxRenderer
 		m_dPrevRight = dRight;
 	}
 
+	void CContTextBuilder::AddUnicodeCluster(
+	        double dTop,
+	        double dBot,
+	        double dLeft,
+	        double dRight,
+	        const NSStructures::CFont& oFont,
+	        const NSStructures::CBrush& oBrush,
+	        CFontManager* pFontManager,
+	        const NSStringUtils::CStringUTF32& oText,
+	        const std::vector<double>& arSymWidths,
+	        const std::vector<double>& arOriginLefts,
+	        size_t nOrder,
+	        unsigned int nGid,
+	        bool bForcedBold,
+	        bool bUseDefaultFont,
+	        bool bWriteStyleRaw,
+	        bool bCollectMetaInfo,
+	        bool bFontSubstitution)
+	{
+		if (oText.empty() || arSymWidths.size() != oText.length() || arOriginLefts.size() != oText.length())
+			return;
+
+		double dWidth = dRight - dLeft;
+		double dHeight = dBot - dTop;
+
+		std::vector<unsigned int> gids(oText.length(), nGid);
+
+		// Clusters are emitted in reading order. Append to the current cont whenever it
+		// sits on the same baseline with the same font/brush, so an entire line stays a
+		// single editable text object instead of one text body per cluster.
+		if (m_pCurrCont != nullptr &&
+		        fabs(m_pCurrCont->m_dBot - dBot) < c_dTHE_SAME_STRING_Y_PRECISION_MM &&
+		        m_oPrevFont.IsEqual2(&oFont) &&
+		        m_oPrevBrush.IsEqual(&oBrush) &&
+		        bFontSubstitution == m_pCurrCont->m_bFontSubstitution &&
+		        dLeft >= m_pCurrCont->m_dRight - c_dTHE_SAME_SPACING_ERROR)
+		{
+			m_pCurrCont->AddTextBack(oText, arSymWidths, gids, arOriginLefts);
+
+			m_pCurrCont->m_dTop = std::min(m_pCurrCont->m_dTop, dTop);
+			m_pCurrCont->m_dBot = std::max(m_pCurrCont->m_dBot, dBot);
+			m_pCurrCont->m_dHeight = m_pCurrCont->m_dBot - m_pCurrCont->m_dTop;
+			m_pCurrCont->m_dWidth = m_pCurrCont->m_dRight - m_pCurrCont->m_dLeft;
+			m_pCurrCont->m_nOrder = nOrder;
+			m_dPrevRight = dRight;
+			return;
+		}
+
+		auto pCont = std::make_shared<CContText>(pFontManager);
+		const auto& oParams = pFontManager->GetFontSelectParams();
+		const auto& oMetrics = pFontManager->GetFontMetrics();
+		m_pFontSelector->SelectFont(oParams, oMetrics, oText);
+
+		pCont->m_dBot    = dBot;
+		pCont->m_dTop    = dTop;
+		pCont->m_dHeight = dHeight;
+		pCont->m_dLeft   = dLeft;
+
+		pCont->m_pFontStyle = m_pFontStyleManager->GetOrAddFontStyle(
+		            oBrush,
+		            m_pFontSelector->GetSelectedName(),
+		            oFont.Size,
+		            m_pFontSelector->IsSelectedItalic(),
+		            m_pFontSelector->IsSelectedBold() || bForcedBold);
+
+		double avg_width = dWidth / oText.length();
+		for (size_t i = 0; i < oText.length(); ++i)
+			if (oText.at(i) == c_SPACE_SYM)
+				pCont->m_pFontStyle->UpdateAvgSpaceWidth(avg_width);
+
+		pCont->m_bCollectMetaInfo = bCollectMetaInfo;
+		pCont->SetText(oText, arSymWidths, std::move(gids), std::vector<double>(arOriginLefts));
+		pCont->m_bIsRtl = CContText::IsUnicodeRtl(oText.at(0));
+
+		pCont->m_dWidth = dWidth;
+		pCont->m_dRight = dRight;
+
+		double ascent = pFontManager->GetFontAscent();
+		double descent = pFontManager->GetFontDescent();
+
+		pCont->m_dTopWithAscent = pCont->m_dBot - ascent;
+		pCont->m_dBotWithDescent = pCont->m_dBot + fabs(descent);
+		pCont->m_dSpaceWidthMM = pFontManager->GetSpaceWidthMM();
+
+		pCont->m_wsOriginFontName = oFont.Name;
+		pCont->m_nOriginFontFaceIndex = oFont.FaceIndex;
+
+		if (bUseDefaultFont)
+		{
+			pCont->m_oSelectedFont.Name = oFont.Name;
+			pCont->m_oSelectedFont.Path = oFont.Path;
+			pCont->m_oSelectedFont.Size = oFont.Size;
+			pCont->m_oSelectedFont.FaceIndex = oFont.FaceIndex;
+		}
+		else
+		{
+			pCont->m_oSelectedFont.Name = m_pFontSelector->GetSelectedName();
+			pCont->m_oSelectedFont.Size = oFont.Size;
+			pCont->m_oSelectedFont.Bold = m_pFontSelector->IsSelectedBold();
+			pCont->m_oSelectedFont.Italic = m_pFontSelector->IsSelectedItalic();
+		}
+		pCont->m_bWriteStyleRaw = bWriteStyleRaw;
+		pCont->m_bFontSubstitution = bFontSubstitution;
+		pCont->m_nOrder = nOrder;
+
+		if (pCont->IsDiacritical())
+			m_arDiacs.push_back(std::move(pCont));
+		else
+			m_arConts.push_back(pCont);
+
+		m_pCurrCont = pCont;
+		m_oPrevFont = oFont;
+		m_oPrevBrush = oBrush;
+		m_dPrevRight = dRight;
+	}
+
 	void CContTextBuilder::NullCurrCont()
 	{
 		m_pCurrCont = nullptr;

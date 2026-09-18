@@ -371,6 +371,79 @@ namespace NSDocxRenderer
 		        );
 	}
 
+	void CPage::AddTextCluster(
+	        const PUINT pUnicodes,
+	        const UINT& nCount,
+	        const UINT& nGid,
+	        const double& fX,
+	        const double& fY,
+	        const double& fBaseLineOffset)
+	{
+		if (nullptr == pUnicodes || 0 == nCount)
+			return;
+
+		double dTextX = fX;
+		double dTextY = fY;
+		m_oTransform.TransformPoint(dTextX, dTextY);
+
+		if (m_bIsRecalcFontSize)
+		{
+			m_oFont.Size *= ((m_oTransform.sx() + m_oTransform.sy()) / 2);
+			m_bIsRecalcFontSize = false;
+		}
+		if (!m_oManagers.pFontManager->LoadFontByFile(m_oFont))
+			return;
+
+		// one drawn glyph carries the whole cluster: measure the advance by gid
+		double _x = 0;
+		double _y = 0;
+		double _w = 0;
+		double _h = 0;
+		unsigned int unGid = nGid;
+		m_oManagers.pFontManager->SetStringGid(1);
+		m_oManagers.pFontManager->MeasureStringGids(&unGid, 1, dTextX, dTextY, _x, _y, _w, _h, CFontManager::mtPosition);
+
+		double dAdvance = _w;
+		double left = dTextX;
+		double right = left + dAdvance;
+
+		_h = m_oManagers.pFontManager->GetFontHeight();
+		double baseline = dTextY + fBaseLineOffset;
+		double top = baseline - _h;
+
+		NSStringUtils::CStringUTF32 oText((uint32_t*)pUnicodes, nCount);
+
+		// the advance belongs to the first codepoint, the rest are zero-width members
+		std::vector<double> ar_widths(nCount, 0.0);
+		std::vector<double> ar_lefts(nCount, left);
+		ar_widths[0] = dAdvance;
+
+		const auto& oParams = m_oManagers.pFontManager->GetFontSelectParams();
+		bool bForcedBold = oParams.bDefaultBold;
+		if (m_lCurrentCommand == c_nStrokeTextType && m_oFont.Bold)
+			bForcedBold = true;
+
+		m_oManagers.pParagraphStyleManager->UpdateAvgFontSize(m_oFont.Size);
+		m_nCurrentOrder++;
+		m_oContBuilder.AddUnicodeCluster(
+		            top,
+		            baseline,
+		            left,
+		            right,
+		            m_oFont,
+		            m_oBrush,
+		            m_oManagers.pFontManager,
+		            oText,
+		            ar_widths,
+		            ar_lefts,
+		            m_nCurrentOrder,
+		            nGid,
+		            bForcedBold,
+		            m_bUseDefaultFont,
+		            m_bWriteStyleRaw,
+		            m_bCollectMetaInfo);
+	}
+
 	void CPage::Analyze()
 	{
 		// building objects from symbols

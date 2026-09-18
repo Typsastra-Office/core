@@ -81,6 +81,14 @@ namespace NSDocxRenderer
 		        const double& fHeight,
 		        const double& fBaseLineOffset);
 
+		void AddTextCluster(
+		        const PUINT pUnicodes,
+		        const UINT& nCount,
+		        const UINT& nGid,
+		        const double& fX,
+		        const double& fY,
+		        const double& fBaseLineOffset);
+
 		void Analyze();
 		void Record(NSStringUtils::CStringBuilder& oWriter, bool bIsLastPage);
 

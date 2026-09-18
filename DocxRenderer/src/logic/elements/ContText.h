@@ -199,6 +199,28 @@ namespace NSDocxRenderer
 		        bool bCollectMetaInfo = false,
 		        bool bFontSubstitution = false);
 
+		// Adds a logical text unit: one drawn glyph that carries several source
+		// codepoints (for example a Khmer cluster). Widths and origins are supplied
+		// by the caller: the glyph advance on the first codepoint, zero on the rest.
+		void AddUnicodeCluster(
+		        double dTop,
+		        double dBot,
+		        double dLeft,
+		        double dRight,
+		        const NSStructures::CFont& oFont,
+		        const NSStructures::CBrush& oBrush,
+		        CFontManager* pFontManager,
+		        const NSStringUtils::CStringUTF32& oText,
+		        const std::vector<double>& arSymWidths,
+		        const std::vector<double>& arOriginLefts,
+		        size_t nOrder,
+		        unsigned int nGid,
+		        bool bForcedBold = false,
+		        bool bUseDefaultFont = false,
+		        bool bWriteStyleRaw = false,
+		        bool bCollectMetaInfo = false,
+		        bool bFontSubstitution = false);
+
 		void NullCurrCont();
 		void Clear();
 	private:

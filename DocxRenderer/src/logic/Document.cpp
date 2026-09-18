@@ -548,15 +548,28 @@ namespace NSDocxRenderer
 	}
 	HRESULT CDocument::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
 	{
-		if (unit.Unicode.empty())
+		if (unit.Unicode.empty() || unit.Components.empty())
 			return S_FALSE;
 
-		const int* pUnicodes = (const int*)unit.Unicode.data();
-		int nCount = (int)unit.Unicode.size();
+		// Кластер: один нарисованный глиф несет последовательность codepoint. Ширину берем
+		// по глифу, а остальные codepoint приписываем с нулевым выносом, чтобы строка не
+		// распадалась и зависимые знаки не раздували ширину. Соседние кластеры на той же
+		// базовой линии объединяются в один текстовый объект (правка строки целиком).
+		const CRendererLogicalComponent& oComponent = unit.Components[0];
+		double dAngleMatrix = m_oCurrentPage.m_oTransform.z_Rotation();
+		if (fabs(dAngleMatrix) > 1 || m_oCurrentPage.m_oTransform.sx() < 0 || m_oCurrentPage.m_oTransform.sy() < 0)
+			return CommandDrawTextPrivate((const int*)unit.Unicode.data(), nullptr,
+			                              (int)unit.Unicode.size(),
+			                              unit.VisualX + oComponent.RelativeX,
+			                              unit.VisualY + oComponent.RelativeY, 0, 0);
 
-		// Кластер: один глиф несет последовательность codepoint. Для измерения используем
-		// сами codepoint, чтобы зависимые знаки (с нулевым выносом) не раздували ширину строки.
-		return CommandDrawTextPrivate(pUnicodes, nullptr, nCount, unit.VisualX, unit.VisualY, 0, 0);
+		m_oCurrentPage.AddTextCluster((const PUINT)unit.Unicode.data(),
+		                              (const UINT)unit.Unicode.size(),
+		                              (const UINT)oComponent.SourceGid,
+		                              unit.VisualX + oComponent.RelativeX,
+		                              unit.VisualY + oComponent.RelativeY,
+		                              0);
+		return S_OK;
 	}
 	//-------- Маркеры для команд ---------------------------------------------------------------
 	HRESULT CDocument::BeginCommand(DWORD lType)

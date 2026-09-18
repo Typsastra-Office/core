@@ -2588,11 +2588,12 @@ namespace PdfReader
 			}
 		}
 
-		// Кластер (один нарисованный глиф, несущий последовательность codepoint, например кхмерский
-		// слог) отдаем отдельной командой, чтобы текстовый рендерер сохранил всю последовательность.
+		// Логическую единицу (один нарисованный глиф, несущий последовательность codepoint,
+		// например кхмерский слог) отдаем отдельной командой, чтобы текстовый рендерер сохранил
+		// всю последовательность и мог объединить соседние единицы в один редактируемый текст.
 		auto fDrawCharText = [&]() -> HRESULT
 		{
-			if (unClusterCount > 1 && NULL != pUnicodeCluster && 0 != unGid)
+			if (unClusterCount >= 1 && NULL != pUnicodeCluster && 0 != unGid)
 			{
 				CRendererLogicalUnit oUnit;
 				oUnit.Unicode.assign((const unsigned int*)pUnicodeCluster, (const unsigned int*)pUnicodeCluster + unClusterCount);
