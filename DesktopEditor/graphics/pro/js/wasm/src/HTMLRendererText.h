@@ -140,6 +140,7 @@ namespace NSHtmlRenderer
 
 		virtual HRESULT CommandDrawTextExCHAR(const LONG& c, const LONG& gid, const double& x, const double& y, const double& w, const double& h);
 		virtual HRESULT CommandDrawTextEx(const std::wstring& bsUnicodeText, const unsigned int* pGids, const unsigned int nGidsCount, const double& x, const double& y, const double& w, const double& h);
+		virtual HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit);
 
 		//-------- Маркеры для команд ---------------------------------------------------------------
 		virtual HRESULT BeginCommand(const DWORD& lType);

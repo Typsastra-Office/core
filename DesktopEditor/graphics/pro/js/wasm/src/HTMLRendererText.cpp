@@ -101,6 +101,19 @@ namespace NSHtmlRenderer
 					m_pTempUnicodes[m_nTempUnicodesLen++] = (int)pWchars[nIndex];
 			}
 		}
+		void GetUnicodes(const unsigned int* pUnicodes, int nCount)
+		{
+			if (nCount > m_nTempUnicodesAlloc)
+			{
+				RELEASEARRAYOBJECTS(m_pTempUnicodes);
+				m_nTempUnicodesAlloc = nCount;
+				m_pTempUnicodes = new int[m_nTempUnicodesAlloc];
+			}
+
+			m_nTempUnicodesLen = nCount;
+			for (int nIndex = 0; nIndex < nCount; ++nIndex)
+				m_pTempUnicodes[nIndex] = (int)pUnicodes[nIndex];
+		}
 		void WriteText(const int* pUnicodes, const int* pGids, const int& nCount, const double& x, const double& y)
 		{
 			bool bIsDumpFont = false;
@@ -111,6 +124,20 @@ namespace NSHtmlRenderer
 			}
 
 			m_oSmartText.CommandText(pUnicodes, pGids, nCount, x, y, bIsDumpFont);
+		}
+		void WriteTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y)
+		{
+			if (nCount <= 0)
+				return;
+
+			bool bIsDumpFont = false;
+			if (!m_oInstalledFont.IsEqual(&m_oFont))
+			{
+				m_oInstalledFont = m_oFont;
+				bIsDumpFont = true;
+			}
+
+			m_oSmartText.CommandTextCluster(pUnicodes, nCount, nGid, x, y, bIsDumpFont);
 		}
 	};
 
@@ -351,6 +378,20 @@ namespace NSHtmlRenderer
 	{
 		m_pInternal->GetUnicodes(bsUnicodeText);
 		m_pInternal->WriteText(m_pInternal->m_pTempUnicodes, (const int*)pGids, m_pInternal->m_nTempUnicodesLen, x, y);
+		return S_OK;
+	}
+	HRESULT CHTMLRendererText::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
+	{
+		if (unit.Unicode.empty() || unit.Components.empty())
+			return S_FALSE;
+
+		m_pInternal->GetUnicodes(unit.Unicode.data(), (int)unit.Unicode.size());
+
+		const CRendererLogicalComponent& oComponent = unit.Components[0];
+		m_pInternal->WriteTextCluster(m_pInternal->m_pTempUnicodes, m_pInternal->m_nTempUnicodesLen,
+		                              (int)oComponent.SourceGid,
+		                              unit.VisualX + oComponent.RelativeX,
+		                              unit.VisualY + oComponent.RelativeY);
 		return S_OK;
 	}
 

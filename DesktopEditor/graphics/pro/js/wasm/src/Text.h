@@ -230,7 +230,18 @@ namespace NSHtmlRenderer
 					dOffsetX = len;
 
 					// теперь посмотрим, может быть нужно вставить пробел??
+					// Хвостовые codepoint кластера имеют нулевую ширину: для оценки разрыва
+					// берем последний символ с реальным глифом, иначе после каждого кластера
+					// вставлялся бы лишний пробел.
 					NSWasm::CHChar* pLastChar = m_oLine.GetTail();
+					for (LONG nLastIndex = m_oLine.m_lCharsTail - 1; nLastIndex >= 0; --nLastIndex)
+					{
+						if (m_oLine.m_pChars[nLastIndex].width > 0.0)
+						{
+							pLastChar = &m_oLine.m_pChars[nLastIndex];
+							break;
+						}
+					}
 					if (dOffsetX > (pLastChar->width + 0.5))
 					{
 						// вставляем пробел. Пробел у нас будет не совсем пробел. А специфический
@@ -323,6 +334,31 @@ namespace NSHtmlRenderer
 				}
 			}
 		}
+		// Добавляет кластер: один глиф, несущий последовательность codepoint. Первый codepoint
+		// пишется как обычный символ с шириной глифа, остальные - как символы нулевой ширины.
+		void CommandTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y, bool bIsDumpFont)
+		{
+			if (nCount <= 0)
+				return;
+
+			int nFirstGid = nGid;
+			CommandText(pUnicodes, &nFirstGid, 1, x, y, bIsDumpFont);
+
+			if (nCount > 1)
+				AppendClusterTail(pUnicodes + 1, nCount - 1);
+		}
+		// Дописывает в текущую строку codepoint кластера, которые не имеют собственного глифа
+		// и не двигают каретку (нулевая ширина). Геометрия остается у первого глифа кластера.
+		void AppendClusterTail(const int* pUnicodes, const int& nCount)
+		{
+			for (int i = 0; i < nCount; ++i)
+			{
+				NSWasm::CHChar* pChar = m_oLine.AddTail();
+				pChar->unicode = pUnicodes[i];
+				pChar->x = 0;
+				pChar->width = 0;
+			}
+		}
 		void DumpLine()
 		{
 			LONG nCount = m_oLine.GetCountChars();
@@ -394,12 +430,16 @@ namespace NSHtmlRenderer
 
 				m_pPageMeta->AddInt(pChar->unicode); // юникодное значение
 				m_pPageMeta->WriteDouble(pChar->width); // ширина буквы
+
+				// ширина линии - максимальный конец символа: последний символ может быть
+				// хвостом кластера нулевой ширины, и тогда его ширины недостаточно
+				double dCharEnd = dCurrentGlyphLineOffset + pChar->width;
+				if (dCharEnd > dWidthLine)
+					dWidthLine = dCharEnd;
 			}
 			if (bIsLastSymbol)
 				m_nCountWords++;
 
-			if (pChar)
-				dWidthLine = dCurrentGlyphLineOffset + pChar->width;
 			m_pPageMeta->AddInt((int)(dWidthLine * 10000.0), _position);
 			m_oLine.Clear();
 		}

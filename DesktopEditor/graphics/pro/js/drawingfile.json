@@ -201,7 +201,7 @@
 	},
 	{
 		"folder": "../../../../PdfFile/SrcWriter/",
-		"files": ["AcroForm.cpp", "Annotation.cpp", "Catalog.cpp", "Destination.cpp", "Document.cpp", "Encrypt.cpp", "EncryptDictionary.cpp", "Field.cpp", "Font.cpp", "Font14.cpp", "FontCidTT.cpp", "FontOTWriter.cpp", "FontTT.cpp", "FontTTWriter.cpp", "GState.cpp", "Image.cpp", "Info.cpp", "Metadata.cpp", "Objects.cpp", "Outline.cpp", "Pages.cpp", "Pattern.cpp", "ResourcesDictionary.cpp", "Shading.cpp", "States.cpp", "Streams.cpp", "Utils.cpp", "RedactOutputDev.cpp"]
+		"files": ["AcroForm.cpp", "Annotation.cpp", "Catalog.cpp", "Destination.cpp", "Document.cpp", "Encrypt.cpp", "EncryptDictionary.cpp", "Field.cpp", "Font.cpp", "Font14.cpp", "FontCidTT.cpp", "FontOTWriter.cpp", "FontTT.cpp", "FontTTWriter.cpp", "GState.cpp", "Image.cpp", "Info.cpp", "LogicalFontMapper.cpp", "LogicalFontSharding.cpp", "LogicalMetafileAdapter.cpp", "LogicalPdfFont.cpp", "LogicalText.cpp", "LogicalTextSerializer.cpp", "LogicalTrueTypeSubset.cpp", "LogicalType0Font.cpp", "Metadata.cpp", "Objects.cpp", "Outline.cpp", "Pages.cpp", "Pattern.cpp", "ResourcesDictionary.cpp", "Shading.cpp", "States.cpp", "Streams.cpp", "Utils.cpp", "RedactOutputDev.cpp"]
 	},
 	{
 		"folder": "../../../../PdfFile/Resources/",

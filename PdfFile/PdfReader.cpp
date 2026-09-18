@@ -972,18 +972,19 @@ BYTE* CPdfReader::GetGIDByUnicode(const std::wstring& wsFontName)
 			if (!pEntry || pEntry->wsFilePath != oIter->second)
 				continue;
 			bFind = true;
-			for (int i = 0; i < pEntry->unLenUnicode; ++i)
+			for (unsigned int i = 0; i < pEntry->unLenUnicode; ++i)
 			{
-				if (pEntry->pCodeToUnicode && pEntry->pCodeToUnicode[i])
+				unsigned int unUnicode = pEntry->GetUnicodeFirst(i);
+				if (0 != unUnicode)
 				{
 					unsigned int unGID = i;
 					if (pEntry->pCodeToGID && pEntry->pCodeToGID[i])
 					{
 						unGID = pEntry->pCodeToGID[i];
-						mGIDbyUnicode[unGID] = pEntry->pCodeToUnicode[i];
+						mGIDbyUnicode[unGID] = unUnicode;
 					}
 					else if (pEntry->bIsIdentity)
-						mGIDbyUnicode.insert(std::make_pair(unGID, pEntry->pCodeToUnicode[i]));
+						mGIDbyUnicode.insert(std::make_pair(unGID, unUnicode));
 				}
 			}
 

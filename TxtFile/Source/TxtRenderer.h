@@ -205,6 +205,8 @@ public:
 	                                  const double& dW,
 	                                  const double& dH) override;
 
+	virtual HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit) override;
+
 	// command type
 	virtual HRESULT BeginCommand(const DWORD& lType) override;
 	virtual HRESULT EndCommand(const DWORD& lType)   override;

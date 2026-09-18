@@ -4378,10 +4378,11 @@ void CPdfEditor::ScanAndProcessFonts(PDFDoc* pPDFDocument, XRef* xref, Dict* pRe
 						{
 							std::map<unsigned int, unsigned int> mCodeToWidth, mCodeToUnicode, mCodeToGID;
 							PdfReader::CollectFontWidths(gfxFont, oFont.getDict(), mCodeToWidth);
-							for (int nIndex = 0; nIndex < pFontEntry.unLenUnicode; ++nIndex)
+							for (unsigned int nIndex = 0; nIndex < pFontEntry.unLenUnicode; ++nIndex)
 							{
-								if (pFontEntry.pCodeToUnicode[nIndex])
-									mCodeToUnicode[nIndex] = pFontEntry.pCodeToUnicode[nIndex];
+								unsigned int unUnicode = pFontEntry.GetUnicodeFirst(nIndex);
+								if (unUnicode)
+									mCodeToUnicode[nIndex] = unUnicode;
 							}
 							for (int nIndex = 0; nIndex < pFontEntry.unLenGID; ++nIndex)
 							{

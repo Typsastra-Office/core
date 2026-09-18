@@ -51,13 +51,32 @@ namespace PdfReader
 		std::wstring wsFilePath;     // Путь к шрифту на диске
 		std::wstring wsFontName;     // Имя шрифта, которое записано в PDF(ветка для случаев, когда имя шрифта в самом шрифте не указано)
 		int*         pCodeToGID;     // Таблица код - номер глифа в шрифте
-		int*         pCodeToUnicode; // Таблица код - юникодное значение
+		int*         pCodeToUnicode; // Плоский массив юникодных значений (последовательности код -> codepoint)
+		unsigned int* pCodeToUnicodeOffset; // Таблица код - смещение в pCodeToUnicode (размер unLenUnicode + 1)
 		unsigned int unLenGID;
-		unsigned int unLenUnicode;
+		unsigned int unLenUnicode;   // Количество кодов (длина таблицы), не количество codepoint
 		bool         bAvailable;     // Доступен ли шрифт. Сделано для многопотоковости
 		bool         bFontSubstitution = false;
 		bool         bIsIdentity = false;
-		
+
+		// Последовательность codepoint для кода (например, кластер кхмерского письма).
+		unsigned int GetUnicodeCount(unsigned int nCode) const
+		{
+			if (NULL == pCodeToUnicodeOffset || nCode >= unLenUnicode)
+				return 0;
+			return pCodeToUnicodeOffset[nCode + 1] - pCodeToUnicodeOffset[nCode];
+		}
+		const int* GetUnicodeData(unsigned int nCode) const
+		{
+			if (NULL == pCodeToUnicode || NULL == pCodeToUnicodeOffset || nCode >= unLenUnicode)
+				return NULL;
+			return pCodeToUnicode + pCodeToUnicodeOffset[nCode];
+		}
+		unsigned int GetUnicodeFirst(unsigned int nCode) const
+		{
+			const int* pData = GetUnicodeData(nCode);
+			return (NULL == pData || 0 == GetUnicodeCount(nCode)) ? 0 : (unsigned int)pData[0];
+		}
 	};
 
 	class CPdfFontList
@@ -68,7 +87,7 @@ namespace PdfReader
 		bool Find(Ref oRef, TFontEntry* pEntry);
 		bool Find2(Ref oRef, TFontEntry** ppEntry);
 		void Remove(Ref oRef);
-		TFontEntry* Add(Ref oRef, const std::wstring& wsFileName, int* pCodeToGID, int* pCodeToUnicode, unsigned int unLenGID, unsigned int unLenUnicode);
+		TFontEntry* Add(Ref oRef, const std::wstring& wsFileName, int* pCodeToGID, int* pCodeToUnicode, unsigned int* pCodeToUnicodeOffset, unsigned int unLenGID, unsigned int unLenUnicode);
 		void Clear();
 		bool GetFont(Ref* pRef, TFontEntry* pEntry);
 		const std::map<Ref, TFontEntry*>& GetFonts();

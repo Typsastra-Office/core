@@ -364,7 +364,7 @@ namespace PdfReader
 
 		if (!bResult)
 		{
-			(*ppEntry) = Add(oRef, std::wstring(), NULL, NULL, 0, 0);
+			(*ppEntry) = Add(oRef, std::wstring(), NULL, NULL, NULL, 0, 0);
 			(*ppEntry)->bAvailable = false;
 		}
 
@@ -372,17 +372,18 @@ namespace PdfReader
 
 		return bResult;
 	}
-	TFontEntry* CPdfFontList::Add(Ref oRef, const std::wstring& wsFileName, int* pCodeToGID, int* pCodeToUnicode, unsigned int unLenGID, unsigned int unLenUnicode)
+	TFontEntry* CPdfFontList::Add(Ref oRef, const std::wstring& wsFileName, int* pCodeToGID, int* pCodeToUnicode, unsigned int* pCodeToUnicodeOffset, unsigned int unLenGID, unsigned int unLenUnicode)
 	{
 		// Данная функция приходит только из Find2, поэтому проверять есть ли данный шрифт уже не надо
 		CTemporaryCS* pCS = new CTemporaryCS(&m_oCS);
 
 		TFontEntry* pNewEntry = new TFontEntry;
-		pNewEntry->wsFilePath     = wsFileName;
-		pNewEntry->pCodeToGID     = pCodeToGID;
-		pNewEntry->pCodeToUnicode = pCodeToUnicode;
-		pNewEntry->unLenGID       = unLenGID;
-		pNewEntry->unLenUnicode   = unLenUnicode;
+		pNewEntry->wsFilePath          = wsFileName;
+		pNewEntry->pCodeToGID          = pCodeToGID;
+		pNewEntry->pCodeToUnicode      = pCodeToUnicode;
+		pNewEntry->pCodeToUnicodeOffset = pCodeToUnicodeOffset;
+		pNewEntry->unLenGID            = unLenGID;
+		pNewEntry->unLenUnicode        = unLenUnicode;
 
 		Add(oRef, pNewEntry);
 
@@ -400,6 +401,7 @@ namespace PdfReader
 			{
 				MemUtilsFree(pEntry->pCodeToGID);
 				MemUtilsFree(pEntry->pCodeToUnicode);
+				MemUtilsFree(pEntry->pCodeToUnicodeOffset);
 			}
 			delete pEntry;
 			m_oFontMap.erase(oPos);
@@ -414,6 +416,7 @@ namespace PdfReader
 			{
 				MemUtilsFree(pEntry->pCodeToGID);
 				MemUtilsFree(pEntry->pCodeToUnicode);
+				MemUtilsFree(pEntry->pCodeToUnicodeOffset);
 			}
 			delete pEntry;
 		}
@@ -1227,6 +1230,7 @@ namespace PdfReader
 			}
 			// Здесь мы грузим кодировки
 			int* pCodeToGID = NULL, *pCodeToUnicode = NULL;
+			unsigned int* pCodeToUnicodeOffset = NULL;
 			int nLen = 0;
 			FoFiTrueType* pTTFontFile  = NULL;
 			FoFiType1C*   pT1CFontFile = NULL;
@@ -1527,54 +1531,82 @@ namespace PdfReader
 				break;
 			}
 			}
-			// Составляем таблицу Code -> Unicode
+			// Составляем таблицу Code -> Unicode.
+			// Один код может отображаться на последовательность codepoint (например, кластер кхмерского
+			// письма или лигатура), поэтому храним плоский массив значений и смещения по каждому коду.
 			int nToUnicodeLen = 0;
-			if (pFont->isCIDFont())
+			std::vector<int> arrCodeToUnicode;
+			std::vector<unsigned int> arrCodeToUnicodeOffset;
 			{
-				GfxCIDFont* pCIDFont = (GfxCIDFont*)pFont;
-				CharCodeToUnicode* pToUnicode = pCIDFont->getToUnicode();
-				if (NULL != pToUnicode)
+				auto fPushCode = [&arrCodeToUnicode, &arrCodeToUnicodeOffset](int nCode, const Unicode* pUnicodes, int nCount, bool bIdentityFallback)
 				{
-					nToUnicodeLen = pToUnicode->getLength();
-					pCodeToUnicode = (int*)MemUtilsMallocArray(nToUnicodeLen, sizeof(int));
-
-					if (pCodeToUnicode)
+					arrCodeToUnicodeOffset.push_back((unsigned int)arrCodeToUnicode.size());
+					if (nCount > 0)
 					{
+						for (int nIndex = 0; nIndex < nCount; ++nIndex)
+							arrCodeToUnicode.push_back((int)pUnicodes[nIndex]);
+					}
+					else
+					{
+						// Отображения нет: для 8-битных шрифтов сохраняем сам код, для CID - маркер 0.
+						arrCodeToUnicode.push_back(bIdentityFallback ? nCode : 0);
+					}
+				};
+
+				if (pFont->isCIDFont())
+				{
+					GfxCIDFont* pCIDFont = (GfxCIDFont*)pFont;
+					CharCodeToUnicode* pToUnicode = pCIDFont->getToUnicode();
+					if (NULL != pToUnicode)
+					{
+						nToUnicodeLen = pToUnicode->getLength();
 						for (int nIndex = 0; nIndex < nToUnicodeLen; ++nIndex)
 						{
-							Unicode aUnicode[2];
-							if (pToUnicode->mapToUnicode(nIndex, aUnicode, 2))
-								pCodeToUnicode[nIndex] = aUnicode[0];
-							else
-								pCodeToUnicode[nIndex] = 0;
+							Unicode aUnicode[32];
+							int nCount = pToUnicode->mapToUnicode(nIndex, aUnicode, 32);
+							fPushCode(nIndex, aUnicode, nCount, false);
 						}
+						pToUnicode->decRefCnt();
 					}
-
-					pToUnicode->decRefCnt();
 				}
-			}
-			else
-			{
-				// memory troubles here
-
-				CharCodeToUnicode* pToUnicode = ((Gfx8BitFont*)pFont)->getToUnicode();
-				if (NULL != pToUnicode)
+				else
 				{
-					nToUnicodeLen = pToUnicode->getLength();
-					pCodeToUnicode = (int*)MemUtilsMallocArray(nToUnicodeLen, sizeof(int));//literally here
+					// memory troubles here
 
-					if (pCodeToUnicode)
+					CharCodeToUnicode* pToUnicode = ((Gfx8BitFont*)pFont)->getToUnicode();
+					if (NULL != pToUnicode)
 					{
+						nToUnicodeLen = pToUnicode->getLength();
 						for (int nIndex = 0; nIndex < nToUnicodeLen; ++nIndex)
 						{
-							Unicode nUnicode = 0;
-							if (pToUnicode->mapToUnicode(nIndex, &nUnicode, 1))
-								pCodeToUnicode[nIndex] = (unsigned short)nUnicode;
-							else
-								pCodeToUnicode[nIndex] = nIndex;
+							Unicode aUnicode[32];
+							int nCount = pToUnicode->mapToUnicode(nIndex, aUnicode, 32);
+							fPushCode(nIndex, aUnicode, nCount, true);
 						}
+						pToUnicode->decRefCnt();
 					}
-					pToUnicode->decRefCnt();
+				}
+
+				if (nToUnicodeLen > 0 && !arrCodeToUnicodeOffset.empty())
+				{
+					arrCodeToUnicodeOffset.push_back((unsigned int)arrCodeToUnicode.size());
+
+					pCodeToUnicode = (int*)MemUtilsMallocArray(arrCodeToUnicode.empty() ? 1 : arrCodeToUnicode.size(), sizeof(int));
+					pCodeToUnicodeOffset = (unsigned int*)MemUtilsMallocArray(arrCodeToUnicodeOffset.size(), sizeof(unsigned int));
+
+					if (NULL != pCodeToUnicode && NULL != pCodeToUnicodeOffset)
+					{
+						if (!arrCodeToUnicode.empty())
+							memcpy(pCodeToUnicode, arrCodeToUnicode.data(), arrCodeToUnicode.size() * sizeof(int));
+						memcpy(pCodeToUnicodeOffset, arrCodeToUnicodeOffset.data(), arrCodeToUnicodeOffset.size() * sizeof(unsigned int));
+					}
+					else
+					{
+						MemUtilsFree(pCodeToUnicode);
+						pCodeToUnicode = NULL;
+						MemUtilsFree(pCodeToUnicodeOffset);
+						pCodeToUnicodeOffset = NULL;
+					}
 				}
 			}
 
@@ -1586,12 +1618,13 @@ namespace PdfReader
 			else if (!bFontBase14 && !bFontSubstitution)
 				wsFontName += (L" " + ComputeFontHash(pXref, pFont));
 
-			pEntry->wsFilePath     = wsFileName;
-			pEntry->wsFontName     = wsFontName;
-			pEntry->pCodeToGID     = pCodeToGID;
-			pEntry->pCodeToUnicode = pCodeToUnicode;
-			pEntry->unLenGID       = (unsigned int)nLen;
-			pEntry->unLenUnicode   = (unsigned int)nToUnicodeLen;
+			pEntry->wsFilePath          = wsFileName;
+			pEntry->wsFontName          = wsFontName;
+			pEntry->pCodeToGID          = pCodeToGID;
+			pEntry->pCodeToUnicode      = pCodeToUnicode;
+			pEntry->pCodeToUnicodeOffset = pCodeToUnicodeOffset;
+			pEntry->unLenGID            = (unsigned int)nLen;
+			pEntry->unLenUnicode        = (unsigned int)nToUnicodeLen;
 			pEntry->bAvailable     = true;
 			pEntry->bFontSubstitution = bFontSubstitution;
 			pEntry->bIsIdentity = pFont->isCIDFont() == gTrue ? ((GfxCIDFont*)pFont)->usesIdentityEncoding() || ((GfxCIDFont*)pFont)->usesIdentityCIDToGID() || ((GfxCIDFont*)pFont)->ctuUsesCharCodeToUnicode() || pFont->getType() == fontCIDType0C : false;
@@ -2381,31 +2414,37 @@ namespace PdfReader
 		if (3 == nRendererMode) // Невидимый текст
 			return;
 
-		unsigned int unGidsCount = seString->getLength();
-		unsigned int* pGids = new unsigned int[unGidsCount];
-		if (!pGids)
-			return;
+		std::vector<unsigned int> arrGids;
+		arrGids.reserve(seString->getLength());
 
 		std::wstring  wsUnicodeText;
 		for (int nIndex = 0; nIndex < seString->getLength(); nIndex++)
 		{
 			int nChar = seString->getChar(nIndex);
 
-			if (NULL != oEntry.pCodeToUnicode)
-			{
-				unsigned short unUnicode = oEntry.pCodeToUnicode[nChar];
-				wsUnicodeText += (wchar_t(unUnicode));
-			}
-
-			if (NULL != oEntry.pCodeToGID)
-				pGids[nIndex] = oEntry.pCodeToGID[nChar];
+			unsigned int unGid = 0;
+			if (NULL != oEntry.pCodeToGID && (unsigned int)nChar < oEntry.unLenGID)
+				unGid = (unsigned int)oEntry.pCodeToGID[nChar];
 			else
-				pGids[nIndex] = (0 == nChar ? 65534 : nChar);
+				unGid = (0 == nChar ? 65534 : (unsigned int)nChar);
 
+			unsigned int unCount = oEntry.GetUnicodeCount((unsigned int)nChar);
+			const int* pUnicodeData = oEntry.GetUnicodeData((unsigned int)nChar);
+			if (unCount > 0 && NULL != pUnicodeData && 0 != pUnicodeData[0])
+			{
+				wsUnicodeText += NSStringExt::CConverter::GetUnicodeFromUTF32((const unsigned int*)pUnicodeData, unCount);
+				for (unsigned int nUnicode = 0; nUnicode < unCount; ++nUnicode)
+					arrGids.push_back(unGid);
+			}
+			else
+			{
+				unsigned int unFallback = (0 == nChar ? 65534 : (unsigned int)nChar);
+				wsUnicodeText += NSStringExt::CConverter::GetUnicodeFromUTF32(&unFallback, 1);
+				arrGids.push_back(unGid);
+			}
 		}
 
-		m_pRenderer->CommandDrawTextEx(wsUnicodeText, pGids, unGidsCount, PDFCoordsToMM(100), PDFCoordsToMM(100), 0, PDFCoordsToMM(0));
-		RELEASEARRAYOBJECTS(pGids);
+		m_pRenderer->CommandDrawTextEx(wsUnicodeText, arrGids.empty() ? NULL : arrGids.data(), (unsigned int)arrGids.size(), PDFCoordsToMM(100), PDFCoordsToMM(100), 0, PDFCoordsToMM(0));
 	}
 	void RendererOutputDev::drawChar(GfxState* pGState, double dX, double dY, double dDx, double dDy, double dOriginX, double dOriginY, CharCode nCode, int nBytesCount, Unicode* pUnicode, int nUnicodeLen)
 	{
@@ -2497,14 +2536,22 @@ namespace PdfReader
 		DoTransform(arrMatrix, &dShiftX, &dShiftY, true);
 
 		std::wstring wsUnicodeText;
+		const int* pUnicodeCluster = NULL;
+		unsigned int unClusterCount = 0;
 
 		bool isCIDFont = pFont->isCIDFont() == gTrue;
-		if (NULL != oEntry.pCodeToUnicode && nCode < oEntry.unLenUnicode && oEntry.pCodeToUnicode[nCode])
+		if (nCode < oEntry.unLenUnicode)
 		{
-			int unUnicode = oEntry.pCodeToUnicode[nCode];
-			wsUnicodeText = NSStringExt::CConverter::GetUnicodeFromUTF32((const unsigned int*)(&unUnicode), 1);
+			const int* pUnicodeData = oEntry.GetUnicodeData(nCode);
+			if (NULL != pUnicodeData && 0 != oEntry.GetUnicodeCount(nCode) && 0 != pUnicodeData[0])
+			{
+				pUnicodeCluster = pUnicodeData;
+				unClusterCount  = oEntry.GetUnicodeCount(nCode);
+				wsUnicodeText = NSStringExt::CConverter::GetUnicodeFromUTF32((const unsigned int*)pUnicodeData, unClusterCount);
+			}
 		}
-		else
+
+		if (wsUnicodeText.empty())
 		{
 			if (isCIDFont)
 			{
@@ -2528,7 +2575,7 @@ namespace PdfReader
 			unGid = oEntry.pCodeToGID[nCode];
 			unGidsCount = 1;
 
-			if (pFont->getType() == fontCIDType0COT && isCIDFont && oEntry.bIsIdentity && oEntry.pCodeToUnicode && nCode < oEntry.unLenUnicode && !oEntry.pCodeToUnicode[nCode])
+			if (pFont->getType() == fontCIDType0COT && isCIDFont && oEntry.bIsIdentity && 0 == oEntry.GetUnicodeFirst(nCode))
 				unGid = nCode;
 		}
 		else
@@ -2540,6 +2587,28 @@ namespace PdfReader
 				unGidsCount = 1;
 			}
 		}
+
+		// Кластер (один нарисованный глиф, несущий последовательность codepoint, например кхмерский
+		// слог) отдаем отдельной командой, чтобы текстовый рендерер сохранил всю последовательность.
+		auto fDrawCharText = [&]() -> HRESULT
+		{
+			if (unClusterCount > 1 && NULL != pUnicodeCluster && 0 != unGid)
+			{
+				CRendererLogicalUnit oUnit;
+				oUnit.Unicode.assign((const unsigned int*)pUnicodeCluster, (const unsigned int*)pUnicodeCluster + unClusterCount);
+				oUnit.VisualX = PDFCoordsToMM(dShiftX);
+				oUnit.VisualY = PDFCoordsToMM(dShiftY);
+
+				CRendererLogicalComponent oComponent;
+				oComponent.SourceGid = unGid;
+				oUnit.Components.push_back(oComponent);
+
+				return m_pRenderer->CommandDrawTextLogicalUnit(oUnit);
+			}
+			if (unGid)
+				return m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+			return m_pRenderer->CommandDrawText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+		};
 
 		if (nRenderMode == 0 || nRenderMode == 4 || nRenderMode == 6 || m_bDrawOnlyText)
 		{
@@ -2599,7 +2668,7 @@ namespace PdfReader
 				}
 			}
 #endif
-			m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+			fDrawCharText();
 			if (bReplace)
 				m_pRenderer->put_FontPath(sFontPath);
 		}
@@ -2622,10 +2691,7 @@ namespace PdfReader
 				m_pRenderer->put_FontStyle(lNewStyle);
 			}
 
-			if (unGid)
-				m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
-			else
-				m_pRenderer->CommandDrawText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+			fDrawCharText();
 
 			if (lOldStyle != lNewStyle)
 				m_pRenderer->put_FontStyle(lOldStyle);
@@ -2636,11 +2702,15 @@ namespace PdfReader
 		{
 			m_pRenderer->BeginCommand(c_nStrokeTextType);
 
+			std::wstring wsPathUnicodeText = wsUnicodeText;
+			if (unClusterCount > 1 && NULL != pUnicodeCluster)
+				wsPathUnicodeText = NSStringExt::CConverter::GetUnicodeFromUTF32((const unsigned int*)pUnicodeCluster, 1);
+
 			m_pRenderer->PathCommandEnd();
 			if (unGid)
-				m_pRenderer->PathCommandTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+				m_pRenderer->PathCommandTextEx(wsPathUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
 			else
-				m_pRenderer->PathCommandText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+				m_pRenderer->PathCommandText(wsPathUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
 
 			long lDrawPath = c_nStroke;
 			if (nRenderMode == 2)

@@ -1164,7 +1164,7 @@ namespace PdfWriter
 			AppendU16(hmtx, advance);
 			AppendS16(hmtx, stats.HasContours ? stats.Bounds.XMin : 0);
 			outputStats.push_back(stats);
-			outputMetrics.push_back({advance, stats.HasContours ? stats.Bounds.XMin : 0,
+			outputMetrics.push_back({advance, static_cast<std::int16_t>(stats.HasContours ? stats.Bounds.XMin : 0),
 			                         stats.HasContours, stats.Bounds});
 		}
 		if (glyf.size() > std::numeric_limits<std::uint32_t>::max())

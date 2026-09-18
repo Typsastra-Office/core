@@ -665,6 +665,15 @@ HRESULT CTxtRenderer::CommandDrawTextEx(const std::wstring& wsUnicodeText,
 	return S_OK;
 }
 
+HRESULT CTxtRenderer::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
+{
+	if (unit.Unicode.empty())
+		return S_FALSE;
+
+	m_pImpl->AddText(unit.Unicode.data(), (unsigned int)unit.Unicode.size(), unit.VisualX, unit.VisualY, 0, 0);
+	return S_OK;
+}
+
 // command type
 HRESULT CTxtRenderer::BeginCommand(const DWORD& lType)
 {

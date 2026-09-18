@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../../../DesktopEditor/common/Directory.h"
+#include "../../../DesktopEditor/graphics/IRenderer.h"
 
 #include "Page.h"
 #include "managers/ImageManager.h"
@@ -145,6 +146,7 @@ namespace NSDocxRenderer
 		HRESULT CommandDrawTextExCHAR(const int& lUnicode, const int& lGid, const double& dX, const double& dY, const double& dW, const double& dH);
 		virtual HRESULT CommandDrawText(const std::wstring& wsUnicodeText, const double& dX, const double& dY, const double& dW, const double& dH);
 		virtual HRESULT CommandDrawTextEx(const std::wstring& wsUnicodeText, const unsigned int* pGids, const unsigned int nGidsCount, const double& dX, const double& dY, const double& dW, const double& dH);
+		virtual HRESULT CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit);
 
 		HRESULT BeginCommand(DWORD lType);
 		HRESULT EndCommand(DWORD lType);

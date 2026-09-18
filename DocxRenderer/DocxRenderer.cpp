@@ -624,6 +624,10 @@ HRESULT CDocxRenderer::CommandDrawTextEx(const std::wstring& wsUnicodeText, cons
 {
 	return m_pInternal->m_oDocument.CommandDrawTextEx(wsUnicodeText, pGids, nGidsCount, dX, dY, dW, dH);
 }
+HRESULT CDocxRenderer::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
+{
+	return m_pInternal->m_oDocument.CommandDrawTextLogicalUnit(unit);
+}
 
 HRESULT CDocxRenderer::BeginCommand(const DWORD& lType)
 {

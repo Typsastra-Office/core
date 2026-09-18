@@ -546,6 +546,18 @@ namespace NSDocxRenderer
 		delete [] pUnicodes;
 		return S_OK;
 	}
+	HRESULT CDocument::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)
+	{
+		if (unit.Unicode.empty())
+			return S_FALSE;
+
+		const int* pUnicodes = (const int*)unit.Unicode.data();
+		int nCount = (int)unit.Unicode.size();
+
+		// Кластер: один глиф несет последовательность codepoint. Для измерения используем
+		// сами codepoint, чтобы зависимые знаки (с нулевым выносом) не раздували ширину строки.
+		return CommandDrawTextPrivate(pUnicodes, nullptr, nCount, unit.VisualX, unit.VisualY, 0, 0);
+	}
 	//-------- Маркеры для команд ---------------------------------------------------------------
 	HRESULT CDocument::BeginCommand(DWORD lType)
 	{
