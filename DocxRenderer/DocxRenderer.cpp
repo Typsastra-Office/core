@@ -1,4 +1,4 @@
-﻿/*
+/*
  * (c) Copyright Ascensio System SIA 2010-2023
  *
  * This program is a free software product. You can redistribute it and/or
@@ -142,14 +142,13 @@ std::vector<std::wstring> CDocxRenderer::ScanPage(IOfficeDrawingFile* pFile, siz
 	return xml_shapes;
 }
 
-std::vector<std::wstring> CDocxRenderer::ScanPagePptx(IOfficeDrawingFile* pFile, size_t nPage)
-{
-	m_pInternal->m_oDocument.Clear();
-	m_pInternal->m_oDocument.Init(false);
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bCollectMetaInfo = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
+	std::vector<std::wstring> CDocxRenderer::ScanPagePptx(IOfficeDrawingFile* pFile, size_t nPage)
+	{
+		m_pInternal->m_oDocument.Clear();
+		m_pInternal->m_oDocument.Init(false);
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
 	m_pInternal->m_bIsSupportShapeCommands = true;
 	m_pInternal->m_oDocument.m_bIsRecord = false;
 
@@ -165,13 +164,12 @@ NSWasm::CData CDocxRenderer::ScanPageBin(IOfficeDrawingFile* pFile, size_t nPage
 {
 	m_pInternal->m_oDocument.Clear();
 	m_pInternal->m_oDocument.Init(false);
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bCollectMetaInfo = true;
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
-	m_pInternal->m_oDocument.m_bIsRecord = false;
-	m_pInternal->m_bIsSupportShapeCommands = true;
-	m_pInternal->m_oDocument.m_oFontStyleManager.Clear();
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
+		m_pInternal->m_oDocument.m_bIsRecord = false;
+		m_pInternal->m_bIsSupportShapeCommands = true;
+		m_pInternal->m_oDocument.m_oFontStyleManager.Clear();
 	m_pInternal->m_oDocument.m_oFontSelector.ClearCache();
 
 	DrawPage(pFile, nPage);

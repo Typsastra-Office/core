@@ -496,31 +496,34 @@ namespace NSDocxRenderer
 			origin_lefts += std::to_wstring(static_cast<int>(l * c_dMMToEMU)) + L";";
 
 		// meta info for pdf-editor
-		oWriter.WriteString(L"<metaorigin:pos");
-		oWriter.WriteString(L" x=\"");
-		oWriter.AddInt(static_cast<int>(m_dLeft * c_dMMToEMU));
-		oWriter.WriteString(L"\" y=\"");
-		oWriter.AddInt(static_cast<int>(m_dBot * c_dMMToEMU));
-		oWriter.WriteString(L"\" />");
+		if (m_bCollectMetaInfo)
+		{
+			oWriter.WriteString(L"<metaorigin:pos");
+			oWriter.WriteString(L" x=\"");
+			oWriter.AddInt(static_cast<int>(m_dLeft * c_dMMToEMU));
+			oWriter.WriteString(L"\" y=\"");
+			oWriter.AddInt(static_cast<int>(m_dBot * c_dMMToEMU));
+			oWriter.WriteString(L"\" />");
 
-		oWriter.WriteString(L"<metaorigin:font ");
-		oWriter.WriteString(L" name=\"");
-		oWriter.WriteString(m_wsOriginFontName);
-		oWriter.WriteString(L"\" faceindex=\"");
-		oWriter.AddInt(m_nOriginFontFaceIndex);
-		oWriter.WriteString(L"\" />");
+			oWriter.WriteString(L"<metaorigin:font ");
+			oWriter.WriteString(L" name=\"");
+			oWriter.WriteString(m_wsOriginFontName);
+			oWriter.WriteString(L"\" faceindex=\"");
+			oWriter.AddInt(m_nOriginFontFaceIndex);
+			oWriter.WriteString(L"\" />");
 
-		oWriter.WriteString(L"<metaorigin:syminfo");
-		oWriter.WriteString(L" lefts=\"");
-		oWriter.WriteString(origin_lefts);
-		oWriter.WriteString(L"\" gids=\"");
-		oWriter.WriteString(origin_gids);
-		oWriter.WriteString(L"\" />");
+			oWriter.WriteString(L"<metaorigin:syminfo");
+			oWriter.WriteString(L" lefts=\"");
+			oWriter.WriteString(origin_lefts);
+			oWriter.WriteString(L"\" gids=\"");
+			oWriter.WriteString(origin_gids);
+			oWriter.WriteString(L"\" />");
 
-		oWriter.WriteString(L"<metaorigin:fontsubstitution");
-		oWriter.WriteString(L" value=\"");
-		oWriter.AddInt(m_bFontSubstitution);
-		oWriter.WriteString(L"\" />");
+			oWriter.WriteString(L"<metaorigin:fontsubstitution");
+			oWriter.WriteString(L" value=\"");
+			oWriter.AddInt(m_bFontSubstitution);
+			oWriter.WriteString(L"\" />");
+		}
 
 		oWriter.WriteString(L"</a:r>");
 	}
@@ -538,6 +541,8 @@ namespace NSDocxRenderer
 		oWriter.WriteBYTE(kBin_g_nodeAttributeEnd);
 
 		// Meta-info
+		if (m_bCollectMetaInfo)
+		{
 		oWriter.StartRecord(111);
 		oWriter.WriteBYTE(kBin_g_nodeAttributeStart);
 		oWriter.WriteBYTE(0); oWriter.WriteStringUtf16(m_wsOriginFontName); // Origin font name
@@ -564,6 +569,7 @@ namespace NSDocxRenderer
 
 		oWriter.WriteBYTE(kBin_g_nodeAttributeEnd);
 		oWriter.EndRecord();
+		}
 
 		// WriteRecord WriteRunProperties
 		[&oWriter, this, lCalculatedSpacing] () {
