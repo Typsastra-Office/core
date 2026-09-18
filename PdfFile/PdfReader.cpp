@@ -974,6 +974,12 @@ BYTE* CPdfReader::GetGIDByUnicode(const std::wstring& wsFontName)
 			bFind = true;
 			for (unsigned int i = 0; i < pEntry->unLenUnicode; ++i)
 			{
+				// A cluster (one glyph, several source codepoints) must be shaped from its
+				// codepoints: mapping it to a single glyph id makes the editor draw the
+				// composed glyph once per codepoint and split combining marks from the base.
+				if (pEntry->GetUnicodeCount(i) > 1)
+					continue;
+
 				unsigned int unUnicode = pEntry->GetUnicodeFirst(i);
 				if (0 != unUnicode)
 				{

@@ -1330,7 +1330,11 @@ namespace NSDocxRenderer
 		double dWidth = dRight - dLeft;
 		double dHeight = dBot - dTop;
 
-		std::vector<unsigned int> gids(oText.length(), nGid);
+		// The synthesized glyph owns the first codepoint; the remaining codepoints are
+		// marked with gid 0 so the editor can rebuild the cluster as one drawn glyph
+		// (ligature) plus zero-width continuation codepoints that carry the text.
+		std::vector<unsigned int> gids(oText.length(), 0);
+		gids[0] = nGid;
 
 		// Clusters are emitted in reading order. Append to the current cont whenever it
 		// sits on the same baseline with the same font/brush, so an entire line stays a
@@ -1340,7 +1344,7 @@ namespace NSDocxRenderer
 		        m_oPrevFont.IsEqual2(&oFont) &&
 		        m_oPrevBrush.IsEqual(&oBrush) &&
 		        bFontSubstitution == m_pCurrCont->m_bFontSubstitution &&
-		        dLeft >= m_pCurrCont->m_dRight - c_dTHE_SAME_SPACING_ERROR)
+		        dLeft + dWidth >= m_pCurrCont->m_dRight - c_dTHE_SAME_SPACING_ERROR)
 		{
 			m_pCurrCont->AddTextBack(oText, arSymWidths, gids, arOriginLefts);
 
