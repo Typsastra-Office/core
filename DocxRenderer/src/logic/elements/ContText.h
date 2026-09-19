@@ -68,6 +68,9 @@ namespace NSDocxRenderer
 		// sizes
 		double m_dSpaceWidthMM{0};
 		double m_dSpacing{0};
+		// PDF logical unit: one drawn glyph carrying several codepoints. Its advance is
+		// already on the first symbol, so no per-codepoint letter spacing is needed.
+		bool m_bIsPdfCluster{false};
 		CSelectedSizes m_oSelectedSizes{};
 
 		double m_dTopWithAscent{0};
@@ -160,6 +163,12 @@ namespace NSDocxRenderer
 		static bool IsUnicodeDiacriticalMark(uint32_t symbol);
 
 		static bool IsFontsEqual(const NSStructures::CFont& oFont1, const NSStructures::CFont& oFont2);
+
+		// PDF edit scan: symbol widths already carry the PDF advances, so no
+		// per-codepoint letter spacing must be added on top.
+		static void SetPdfScan(bool bPdfScan);
+
+		static bool m_gPdfScan;
 
 	private:
 		NSStringUtils::CStringUTF32 m_oText{};

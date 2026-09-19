@@ -27,6 +27,12 @@ namespace NSDocxRenderer
 		Clear();
 	}
 
+	bool CContText::m_gPdfScan = false;
+	void CContText::SetPdfScan(bool bPdfScan)
+	{
+		m_gPdfScan = bPdfScan;
+	}
+
 	void CContText::Clear()
 	{
 		m_pFontStyle = nullptr;
@@ -121,7 +127,9 @@ namespace NSDocxRenderer
 
 			m_oSelectedSizes.dWidth = dBoxWidth;
 			m_oSelectedSizes.dHeight = dBoxHeight;
-			m_dSpacing = (m_dWidth - m_oSelectedSizes.dWidth) / (m_oText.length());
+			m_dSpacing = (m_gPdfScan || m_bIsPdfCluster)
+			        ? 0.0
+			        : (m_dWidth - m_oSelectedSizes.dWidth) / (m_oText.length());
 		}
 	}
 
@@ -1359,6 +1367,8 @@ namespace NSDocxRenderer
 			m_pCurrCont->m_dHeight = m_pCurrCont->m_dBot - m_pCurrCont->m_dTop;
 			m_pCurrCont->m_dWidth = m_pCurrCont->m_dRight - m_pCurrCont->m_dLeft;
 			m_pCurrCont->m_nOrder = nOrder;
+			if (oText.length() > 1)
+				m_pCurrCont->m_bIsPdfCluster = true;
 			m_dPrevRight = dRight;
 			return;
 		}
@@ -1386,6 +1396,7 @@ namespace NSDocxRenderer
 				pCont->m_pFontStyle->UpdateAvgSpaceWidth(avg_width);
 
 		pCont->m_bCollectMetaInfo = bCollectMetaInfo;
+		pCont->m_bIsPdfCluster = (oText.length() > 1);
 		pCont->SetText(oText, arSymWidths, std::move(gids), std::vector<double>(arOriginLefts));
 		pCont->m_bIsRtl = CContText::IsUnicodeRtl(oText.at(0));
 
