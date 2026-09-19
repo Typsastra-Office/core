@@ -102,6 +102,7 @@ namespace NSDocxRenderer
 		void BuildBlipFill(NSStringUtils::CStringBuilder &oWriter) const;
 
 		static void ResetRelativeHeight();
+		static void SetPdfScanNoWrap(bool bNoWrap);
 
 		// check type of line and delete not needed shape
 		// one shape in line
@@ -116,6 +117,9 @@ namespace NSDocxRenderer
 		UINT m_nRelativeHeight{0};
 
 		static UINT m_gRelativeHeight;
+		// PDF edit scan: keep the scanned line breaks instead of re-wrapping with the
+		// substituted font, so the page layout does not change when entering edit mode.
+		static bool m_gPdfScanNoWrap;
 		static UINT GenerateShapeId();
 	};
 }

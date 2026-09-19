@@ -8,6 +8,11 @@
 namespace NSDocxRenderer
 {
 	UINT CShape::m_gRelativeHeight = c_iStandartRelativeHeight;
+bool CShape::m_gPdfScanNoWrap = false;
+void CShape::SetPdfScanNoWrap(bool bNoWrap)
+{
+	m_gPdfScanNoWrap = bNoWrap;
+}
 
 	unsigned int ClampUIntSign(const double& value)
 	{
@@ -954,7 +959,7 @@ namespace NSDocxRenderer
 		oWriter.WriteString(L" horzOverflow=\"overflow\""); //может ли текст выходить за пределы ограничительной рамки по горизонтали.
 		oWriter.WriteString(L" vert=\"horz\"");
 		//oWriter.WriteString(L" wrap=\"none\""); //граница шейпа по ширине текста
-		oWriter.WriteString(L" wrap=\"square\""); //Определяет параметры обертки, которые будут использоваться для данного текстового тела.
+		oWriter.WriteString(CShape::m_gPdfScanNoWrap ? L" wrap=\"none\"" : L" wrap=\"square\""); //Определяет параметры обертки, которые будут использоваться для данного текстового тела.
 		//на сколько граница текста отступает от границы шейпа
 		oWriter.WriteString(L" lIns=\"0\""); //left   по умолчанию 0.25см = 91440
 		oWriter.WriteString(L" tIns=\"0\""); //top    по умолчанию 0.13см = 45720
@@ -1361,7 +1366,8 @@ namespace NSDocxRenderer
 			// 16 is upright param
 			oWriter.WriteBYTE(17); oWriter.WriteBYTE(1);     // vert
 			oWriter.WriteBYTE(18); oWriter.WriteBYTE(1);     // vertOverflow
-			oWriter.WriteBYTE(19); oWriter.WriteBYTE(1);     // vert
+			// the loader maps attribute 19 to bodyPr.wrap (1 = square, 0 = none)
+			oWriter.WriteBYTE(19); oWriter.WriteBYTE(CShape::m_gPdfScanNoWrap ? 0 : 1);
 
 			oWriter.WriteBYTE(kBin_g_nodeAttributeEnd);
 			// todo WritePrstTxWarp
