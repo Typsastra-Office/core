@@ -27,31 +27,6 @@ namespace NSDocxRenderer
 		Clear();
 	}
 
-	bool CContText::m_gPdfScan = false;
-	void CContText::SetPdfScan(bool bPdfScan)
-	{
-		m_gPdfScan = bPdfScan;
-	}
-
-	// PDF scan: a synthesized "content" font cannot map the logical Unicode in the
-	// editor, so use the matching real font name instead.
-	static std::wstring PdfScanFontName(const std::wstring& wsName)
-	{
-		std::wstring s = wsName;
-		std::wstring lower(s);
-		for (size_t i = 0; i < lower.size(); ++i)
-			lower[i] = (wchar_t)towlower(lower[i]);
-		const std::wstring suffix = L"content";
-		if (lower.size() >= suffix.size() &&
-		    lower.compare(lower.size() - suffix.size(), suffix.size(), suffix) == 0)
-		{
-			s.erase(s.size() - suffix.size());
-			while (!s.empty() && (s.back() == L' ' || s.back() == L'-' || s.back() == L'_'))
-				s.pop_back();
-		}
-		return s;
-	}
-
 	void CContText::Clear()
 	{
 		m_pFontStyle = nullptr;
@@ -146,9 +121,7 @@ namespace NSDocxRenderer
 
 			m_oSelectedSizes.dWidth = dBoxWidth;
 			m_oSelectedSizes.dHeight = dBoxHeight;
-			m_dSpacing = (m_gPdfScan || m_bIsPdfCluster)
-			        ? 0.0
-			        : (m_dWidth - m_oSelectedSizes.dWidth) / (m_oText.length());
+			m_dSpacing = (m_dWidth - m_oSelectedSizes.dWidth) / (m_oText.length());
 		}
 	}
 
@@ -1274,7 +1247,7 @@ namespace NSDocxRenderer
 		// при дальнейшем анализе может измениться
 		pCont->m_pFontStyle = m_pFontStyleManager->GetOrAddFontStyle(
 		            oBrush,
-		            (CContText::m_gPdfScan ? PdfScanFontName(m_pFontSelector->GetSelectedName()) : m_pFontSelector->GetSelectedName()),
+		            m_pFontSelector->GetSelectedName(),
 		            oFont.Size,
 		            m_pFontSelector->IsSelectedItalic(),
 		            m_pFontSelector->IsSelectedBold() || bForcedBold);
@@ -1314,7 +1287,7 @@ namespace NSDocxRenderer
 		}
 		else
 		{
-			pCont->m_oSelectedFont.Name = (CContText::m_gPdfScan ? PdfScanFontName(m_pFontSelector->GetSelectedName()) : m_pFontSelector->GetSelectedName());
+			pCont->m_oSelectedFont.Name = m_pFontSelector->GetSelectedName();
 			pCont->m_oSelectedFont.Size = oFont.Size;
 			pCont->m_oSelectedFont.Bold = m_pFontSelector->IsSelectedBold();
 			pCont->m_oSelectedFont.Italic = m_pFontSelector->IsSelectedItalic();
@@ -1386,8 +1359,6 @@ namespace NSDocxRenderer
 			m_pCurrCont->m_dHeight = m_pCurrCont->m_dBot - m_pCurrCont->m_dTop;
 			m_pCurrCont->m_dWidth = m_pCurrCont->m_dRight - m_pCurrCont->m_dLeft;
 			m_pCurrCont->m_nOrder = nOrder;
-			if (oText.length() > 1)
-				m_pCurrCont->m_bIsPdfCluster = true;
 			m_dPrevRight = dRight;
 			return;
 		}
@@ -1404,7 +1375,7 @@ namespace NSDocxRenderer
 
 		pCont->m_pFontStyle = m_pFontStyleManager->GetOrAddFontStyle(
 		            oBrush,
-		            (CContText::m_gPdfScan ? PdfScanFontName(m_pFontSelector->GetSelectedName()) : m_pFontSelector->GetSelectedName()),
+		            m_pFontSelector->GetSelectedName(),
 		            oFont.Size,
 		            m_pFontSelector->IsSelectedItalic(),
 		            m_pFontSelector->IsSelectedBold() || bForcedBold);
@@ -1415,7 +1386,6 @@ namespace NSDocxRenderer
 				pCont->m_pFontStyle->UpdateAvgSpaceWidth(avg_width);
 
 		pCont->m_bCollectMetaInfo = bCollectMetaInfo;
-		pCont->m_bIsPdfCluster = (oText.length() > 1);
 		pCont->SetText(oText, arSymWidths, std::move(gids), std::vector<double>(arOriginLefts));
 		pCont->m_bIsRtl = CContText::IsUnicodeRtl(oText.at(0));
 
@@ -1441,7 +1411,7 @@ namespace NSDocxRenderer
 		}
 		else
 		{
-			pCont->m_oSelectedFont.Name = (CContText::m_gPdfScan ? PdfScanFontName(m_pFontSelector->GetSelectedName()) : m_pFontSelector->GetSelectedName());
+			pCont->m_oSelectedFont.Name = m_pFontSelector->GetSelectedName();
 			pCont->m_oSelectedFont.Size = oFont.Size;
 			pCont->m_oSelectedFont.Bold = m_pFontSelector->IsSelectedBold();
 			pCont->m_oSelectedFont.Italic = m_pFontSelector->IsSelectedItalic();

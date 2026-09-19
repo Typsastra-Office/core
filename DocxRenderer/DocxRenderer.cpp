@@ -89,7 +89,7 @@ int CDocxRenderer::Convert(IOfficeDrawingFile* pFile, const std::wstring& sDst, 
 #ifndef DISABLE_FULL_DOCUMENT_CREATION
 	m_pInternal->m_oDocument.m_strDstFilePath = sDst;
 
-	m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
+	m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = false;
 	m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = false;
 	m_pInternal->m_bIsSupportShapeCommands = false;
 	m_pInternal->m_oDocument.m_bIsRecord = true;
@@ -134,8 +134,6 @@ std::vector<std::wstring> CDocxRenderer::ScanPage(IOfficeDrawingFile* pFile, siz
 	m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
 	m_pInternal->m_bIsSupportShapeCommands = false;
 	m_pInternal->m_oDocument.m_bIsRecord = false;
-	NSDocxRenderer::CShape::SetPdfScanNoWrap(false);
-	NSDocxRenderer::CContText::SetPdfScan(false);
 
 	DrawPage(pFile, nPage);
 
@@ -148,16 +146,14 @@ std::vector<std::wstring> CDocxRenderer::ScanPage(IOfficeDrawingFile* pFile, siz
 	{
 		m_pInternal->m_oDocument.Clear();
 		m_pInternal->m_oDocument.Init(false);
-		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = false;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
 		m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
 		m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
-		m_pInternal->m_bIsSupportShapeCommands = true;
-		m_pInternal->m_oDocument.m_bIsRecord = false;
-		NSDocxRenderer::CShape::SetPdfScanNoWrap(true);
-		NSDocxRenderer::CContText::SetPdfScan(true);
+	m_pInternal->m_bIsSupportShapeCommands = true;
+	m_pInternal->m_oDocument.m_bIsRecord = false;
 
-		m_pInternal->m_eShapeSerializeType = ShapeSerializeType::sstXml;
-		DrawPage(pFile, nPage);
+	m_pInternal->m_eShapeSerializeType = ShapeSerializeType::sstXml;
+	DrawPage(pFile, nPage);
 	m_pInternal->m_eShapeSerializeType = ShapeSerializeType::sstBinary;
 
 	auto xml_shapes = m_pInternal->m_oDocument.m_oCurrentPage.GetXmlShapesPptx();
@@ -168,13 +164,11 @@ NSWasm::CData CDocxRenderer::ScanPageBin(IOfficeDrawingFile* pFile, size_t nPage
 {
 	m_pInternal->m_oDocument.Clear();
 	m_pInternal->m_oDocument.Init(false);
-		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = false;
+		m_pInternal->m_oDocument.m_oCurrentPage.m_bUseDefaultFont = true;
 		m_pInternal->m_oDocument.m_oCurrentPage.m_bWriteStyleRaw = true;
 		m_pInternal->m_oDocument.m_oCurrentPage.m_bFirstParagraphLineCorrection = true;
 		m_pInternal->m_oDocument.m_bIsRecord = false;
 		m_pInternal->m_bIsSupportShapeCommands = true;
-		NSDocxRenderer::CShape::SetPdfScanNoWrap(true);
-		NSDocxRenderer::CContText::SetPdfScan(true);
 		m_pInternal->m_oDocument.m_oFontStyleManager.Clear();
 	m_pInternal->m_oDocument.m_oFontSelector.ClearCache();
 
