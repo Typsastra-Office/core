@@ -27,7 +27,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -56,7 +55,10 @@ namespace PdfWriter
 		std::vector<CLogicalGlyph> Glyphs;
 		double VisualX = 0.0;
 		double VisualY = 0.0;
-		std::optional<CLogicalTextLocation> Location;
+		// Keep this C++11-only on purpose: the Linux build uses the Ubuntu 16
+		// sysroot (libstdc++ 5.4), which has no <optional>.
+		bool HasLocation = false;
+		CLogicalTextLocation Location;
 	};
 
 	struct CLogicalComponent
@@ -93,7 +95,8 @@ namespace PdfWriter
 		CVisualUnitKey Visual;
 		double VisualX = 0.0;
 		double VisualY = 0.0;
-		std::optional<CLogicalTextLocation> Location;
+		bool HasLocation = false;
+		CLogicalTextLocation Location;
 
 		CSemanticUnitKey GetSemanticKey() const;
 	};

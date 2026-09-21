@@ -187,6 +187,7 @@ namespace PdfWriter
 		plan.VisualX = unit.VisualX + minX;
 		plan.VisualY = unit.VisualY;
 		plan.Location = unit.Location;
+		plan.HasLocation = unit.HasLocation;
 		return true;
 	}
 }
