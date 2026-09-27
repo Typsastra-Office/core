@@ -32,7 +32,10 @@ namespace PdfWriter
 		if (semantic != m_semanticCids.end())
 		{
 			const CLogicalCidRecord* record = GetCidRecord(semantic->second);
-			return {semantic->second, record->VisualRecordId, false, false};
+			CLogicalFontMapping mapping;
+			mapping.Cid = semantic->second;
+			mapping.VisualRecordId = record->VisualRecordId;
+			return mapping;
 		}
 
 		TLogicalVisualRecordId visualRecordId = 0;
@@ -46,14 +49,28 @@ namespace PdfWriter
 		{
 			visualRecordId = static_cast<TLogicalVisualRecordId>(m_visualRecords.size() + 1);
 			m_visualRecordIds.emplace(plan.Visual, visualRecordId);
-			m_visualRecords.push_back({visualRecordId, plan.Visual});
+			CLogicalVisualRecord visualRecord;
+			visualRecord.Id = visualRecordId;
+			visualRecord.Visual = plan.Visual;
+			m_visualRecords.push_back(visualRecord);
 			visualCreated = true;
 		}
 
 		const TLogicalCid cid = static_cast<TLogicalCid>(m_cidRecords.size() + 1);
 		m_semanticCids.emplace(semanticKey, cid);
-		m_cidRecords.push_back({cid, plan.Text, visualRecordId, plan.Visual.AdvanceWidth});
-		return {cid, visualRecordId, true, visualCreated};
+		CLogicalCidRecord cidRecord;
+		cidRecord.Cid = cid;
+		cidRecord.Text = plan.Text;
+		cidRecord.VisualRecordId = visualRecordId;
+		cidRecord.Width = plan.Visual.AdvanceWidth;
+		m_cidRecords.push_back(cidRecord);
+
+		CLogicalFontMapping mapping;
+		mapping.Cid = cid;
+		mapping.VisualRecordId = visualRecordId;
+		mapping.SemanticCreated = true;
+		mapping.VisualCreated = visualCreated;
+		return mapping;
 	}
 
 	std::size_t CLogicalFontShard::GetSemanticCount() const
