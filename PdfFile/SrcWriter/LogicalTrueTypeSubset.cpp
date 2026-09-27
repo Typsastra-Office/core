@@ -35,6 +35,8 @@
 
 namespace PdfWriter
 {
+	constexpr std::uint32_t CLogicalTrueTypeSubsetResult::UnmappedGlyph;
+
 	namespace
 	{
 		constexpr std::uint32_t MakeTag(char a, char b, char c, char d)
