@@ -68,6 +68,9 @@ namespace PdfWriter
 
 		struct CTableView
 		{
+			CTableView() = default;
+			CTableView(std::size_t offset, std::size_t length) : Offset(offset), Length(length) {}
+
 			std::size_t Offset = 0;
 			std::size_t Length = 0;
 		};
@@ -87,12 +90,20 @@ namespace PdfWriter
 
 		struct CCompositeReference
 		{
+			CCompositeReference() = default;
+			CCompositeReference(std::uint16_t glyphId, std::size_t glyphIdOffset)
+				: GlyphId(glyphId), GlyphIdOffset(glyphIdOffset) {}
+
 			std::uint16_t GlyphId = 0;
 			std::size_t GlyphIdOffset = 0;
 		};
 
 		struct COutputTable
 		{
+			COutputTable() = default;
+			COutputTable(std::uint32_t tag, std::vector<std::uint8_t> data)
+				: Tag(tag), Data(std::move(data)) {}
+
 			std::uint32_t Tag = 0;
 			std::vector<std::uint8_t> Data;
 			std::uint32_t Checksum = 0;
@@ -101,6 +112,10 @@ namespace PdfWriter
 
 		struct CBBox
 		{
+			CBBox() = default;
+			CBBox(std::int16_t xMin, std::int16_t yMin, std::int16_t xMax, std::int16_t yMax)
+				: XMin(xMin), YMin(yMin), XMax(xMax), YMax(yMax) {}
+
 			std::int16_t XMin = 0;
 			std::int16_t YMin = 0;
 			std::int16_t XMax = 0;
@@ -120,6 +135,11 @@ namespace PdfWriter
 
 		struct COutputGlyphMetric
 		{
+			COutputGlyphMetric() = default;
+			COutputGlyphMetric(std::uint16_t advance, std::int16_t leftSideBearing,
+			                   bool hasContours, const CBBox& bounds)
+				: Advance(advance), LeftSideBearing(leftSideBearing), HasContours(hasContours), Bounds(bounds) {}
+
 			std::uint16_t Advance = 0;
 			std::int16_t LeftSideBearing = 0;
 			bool HasContours = false;
@@ -487,6 +507,8 @@ namespace PdfWriter
 		{
 			struct CFrame
 			{
+				explicit CFrame(std::uint16_t glyphId) : GlyphId(glyphId) {}
+
 				std::uint16_t GlyphId = 0;
 				std::vector<CCompositeReference> References;
 				std::size_t NextReference = 0;
@@ -496,7 +518,7 @@ namespace PdfWriter
 				return true;
 
 			std::vector<CFrame> stack;
-			stack.push_back({glyphId, {}, 0});
+			stack.push_back(CFrame(glyphId));
 			while (!stack.empty())
 			{
 				CFrame& frame = stack.back();
@@ -527,7 +549,7 @@ namespace PdfWriter
 					glyphOrder.push_back(dependency);
 				}
 				if (states[dependency] == 0)
-					stack.push_back({dependency, {}, 0});
+					stack.push_back(CFrame(dependency));
 			}
 			return true;
 		}
@@ -541,6 +563,8 @@ namespace PdfWriter
 		{
 			struct CFrame
 			{
+				explicit CFrame(std::uint16_t glyphId) : GlyphId(glyphId) {}
+
 				std::uint16_t GlyphId = 0;
 				std::vector<CCompositeReference> References;
 				std::size_t NextReference = 0;
@@ -548,7 +572,7 @@ namespace PdfWriter
 
 			if (states[glyphId] == 2)
 				return true;
-			std::vector<CFrame> stack{{glyphId, {}, 0}};
+			std::vector<CFrame> stack{CFrame(glyphId)};
 			const CTableView& glyf = font.Tables.at(TagGlyf);
 			while (!stack.empty())
 			{
@@ -601,7 +625,7 @@ namespace PdfWriter
 						return SetError(error, CLogicalTrueTypeSubsetErrorCode::CompositeCycle,
 						                "composite glyph dependency cycle detected", 0, dependency);
 					if (states[dependency] == 0)
-						stack.push_back({dependency, {}, 0});
+					stack.push_back(CFrame(dependency));
 					continue;
 				}
 
