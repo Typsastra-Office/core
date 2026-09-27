@@ -112,7 +112,10 @@ namespace PdfWriter
 				const std::size_t length = ReadU32(data, record + 12);
 				if (!HasRange(data.size(), offset, length))
 					return Fail(error, "FontFile2 contains a table outside the SFNT data");
-				if (!tables.emplace(tag, CTable{offset, length}).second)
+				CTable table;
+				table.Offset = offset;
+				table.Length = length;
+				if (!tables.emplace(tag, table).second)
 					return Fail(error, "FontFile2 contains a duplicate table tag");
 			}
 
