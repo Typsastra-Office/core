@@ -167,6 +167,11 @@ namespace
 {
 	struct CLogicalSourceFontKey
 	{
+		CLogicalSourceFontKey() = default;
+		CLogicalSourceFontKey(const std::wstring& path, LONG faceIndex,
+		                      ERendererLogicalWritingMode writingMode)
+			: Path(path), FaceIndex(faceIndex), WritingMode(writingMode) {}
+
 		std::wstring Path;
 		LONG FaceIndex = 0;
 		ERendererLogicalWritingMode WritingMode = ERendererLogicalWritingMode::Horizontal;
