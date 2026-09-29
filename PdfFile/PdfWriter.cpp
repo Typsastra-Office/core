@@ -3553,6 +3553,13 @@ bool CPdfWriter::EditClose()
 {
 	if (!IsValid())
 		return false;
+
+	// The logical font subset grows as new logical units arrive, and the embedded font
+	// program is only rebuilt on finalization. Incremental editing never reaches
+	// SaveToFile/SaveToMemory, so without this the appended content would reference
+	// CIDs that are absent from the font written to the output.
+	if (!FinalizeLogicalFonts())
+		return false;
 	m_oCommandManager.Flush();
 
 	unsigned int nPagesCount = m_pDocument->GetPagesCount();

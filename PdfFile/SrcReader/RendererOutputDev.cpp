@@ -2591,29 +2591,6 @@ namespace PdfReader
 			}
 		}
 
-		// Логическую единицу (один нарисованный глиф, несущий последовательность codepoint,
-		// например кхмерский слог) отдаем отдельной командой, чтобы текстовый рендерер сохранил
-		// всю последовательность и мог объединить соседние единицы в один редактируемый текст.
-		auto fDrawCharText = [&]() -> HRESULT
-		{
-			if (unClusterCount >= 1 && NULL != pUnicodeCluster && 0 != unGid)
-			{
-				CRendererLogicalUnit oUnit;
-				oUnit.Unicode.assign((const unsigned int*)pUnicodeCluster, (const unsigned int*)pUnicodeCluster + unClusterCount);
-				oUnit.VisualX = PDFCoordsToMM(dShiftX);
-				oUnit.VisualY = PDFCoordsToMM(dShiftY);
-
-				CRendererLogicalComponent oComponent;
-				oComponent.SourceGid = unGid;
-				oUnit.Components.push_back(oComponent);
-
-				return m_pRenderer->CommandDrawTextLogicalUnit(oUnit);
-			}
-			if (unGid)
-				return m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
-			return m_pRenderer->CommandDrawText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
-		};
-
 		if (nRenderMode == 0 || nRenderMode == 4 || nRenderMode == 6 || m_bDrawOnlyText)
 		{
 			bool bReplace = false;
@@ -2672,7 +2649,10 @@ namespace PdfReader
 				}
 			}
 #endif
-			fDrawCharText();
+			if (unGid)
+				m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+			else
+				m_pRenderer->CommandDrawText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
 			if (bReplace)
 				m_pRenderer->put_FontPath(sFontPath);
 		}
@@ -2695,7 +2675,10 @@ namespace PdfReader
 				m_pRenderer->put_FontStyle(lNewStyle);
 			}
 
-			fDrawCharText();
+			if (unGid)
+				m_pRenderer->CommandDrawTextEx(wsUnicodeText, &unGid, unGidsCount, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
+			else
+				m_pRenderer->CommandDrawText(wsUnicodeText, PDFCoordsToMM(dShiftX), PDFCoordsToMM(dShiftY), PDFCoordsToMM(dDx), PDFCoordsToMM(dDy));
 
 			if (lOldStyle != lNewStyle)
 				m_pRenderer->put_FontStyle(lOldStyle);
