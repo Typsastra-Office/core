@@ -114,7 +114,8 @@ namespace NSHtmlRenderer
 			for (int nIndex = 0; nIndex < nCount; ++nIndex)
 				m_pTempUnicodes[nIndex] = (int)pUnicodes[nIndex];
 		}
-		void WriteText(const int* pUnicodes, const int* pGids, const int& nCount, const double& x, const double& y)
+		void WriteText(const int* pUnicodes, const int* pGids, const int& nCount, const double& x, const double& y,
+		               const double& dSourceAdvance = 0)
 		{
 			bool bIsDumpFont = false;
 			if (!m_oInstalledFont.IsEqual(&m_oFont))
@@ -123,9 +124,10 @@ namespace NSHtmlRenderer
 				bIsDumpFont = true;
 			}
 
-			m_oSmartText.CommandText(pUnicodes, pGids, nCount, x, y, bIsDumpFont);
+			m_oSmartText.CommandText(pUnicodes, pGids, nCount, x, y, bIsDumpFont, dSourceAdvance);
 		}
-		void WriteTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y)
+		void WriteTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y,
+		                      const double& dSourceAdvance = 0)
 		{
 			if (nCount <= 0)
 				return;
@@ -137,7 +139,7 @@ namespace NSHtmlRenderer
 				bIsDumpFont = true;
 			}
 
-			m_oSmartText.CommandTextCluster(pUnicodes, nCount, nGid, x, y, bIsDumpFont);
+			m_oSmartText.CommandTextCluster(pUnicodes, nCount, nGid, x, y, bIsDumpFont, dSourceAdvance);
 		}
 	};
 
@@ -357,13 +359,13 @@ namespace NSHtmlRenderer
 	HRESULT CHTMLRendererText::CommandDrawTextCHAR(const LONG& c, const double& x, const double& y, const double& w, const double& h)
 	{
 		int _c = (int)c;
-		m_pInternal->WriteText(&_c, NULL, 1, x, y);
+		m_pInternal->WriteText(&_c, NULL, 1, x, y, w);
 		return S_OK;
 	}
 	HRESULT CHTMLRendererText::CommandDrawText(const std::wstring& bsText, const double& x, const double& y, const double& w, const double& h)
 	{
 		m_pInternal->GetUnicodes(bsText);
-		m_pInternal->WriteText(m_pInternal->m_pTempUnicodes, NULL, m_pInternal->m_nTempUnicodesLen, x, y);
+		m_pInternal->WriteText(m_pInternal->m_pTempUnicodes, NULL, m_pInternal->m_nTempUnicodesLen, x, y, w);
 		return S_OK;
 	}
 	HRESULT CHTMLRendererText::CommandDrawTextExCHAR(const LONG& c, const LONG& gid, const double& x, const double& y, const double& w, const double& h)
@@ -371,13 +373,18 @@ namespace NSHtmlRenderer
 		int _c = (int)c;
 		int _g = (int)gid;
 
-		m_pInternal->WriteText(&_c, &_g, 1, x, y);
+		m_pInternal->WriteText(&_c, &_g, 1, x, y, w);
 		return S_OK;
 	}
 	HRESULT CHTMLRendererText::CommandDrawTextEx(const std::wstring& bsUnicodeText, const unsigned int* pGids, const unsigned int nGidsCount, const double& x, const double& y, const double& w, const double& h)
 	{
 		m_pInternal->GetUnicodes(bsUnicodeText);
-		m_pInternal->WriteText(m_pInternal->m_pTempUnicodes, (const int*)pGids, m_pInternal->m_nTempUnicodesLen, x, y);
+		if (pGids && nGidsCount == 1 && m_pInternal->m_nTempUnicodesLen > 1)
+			m_pInternal->WriteTextCluster(m_pInternal->m_pTempUnicodes, m_pInternal->m_nTempUnicodesLen,
+			                             (int)pGids[0], x, y, w);
+		else
+			m_pInternal->WriteText(m_pInternal->m_pTempUnicodes, (const int*)pGids,
+			                       m_pInternal->m_nTempUnicodesLen, x, y, w);
 		return S_OK;
 	}
 	HRESULT CHTMLRendererText::CommandDrawTextLogicalUnit(const CRendererLogicalUnit& unit)

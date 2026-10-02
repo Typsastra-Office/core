@@ -40,6 +40,18 @@
 
 namespace NSHtmlRenderer
 {
+	// Height of the transformed text unit in the direction perpendicular to its
+	// baseline. A horizontal stretch must change advances without changing the
+	// selection's ascent or descent.
+	inline double TextSelectionNormalScale(double horizontalX, double horizontalY,
+	                                       double verticalX, double verticalY)
+	{
+		double horizontalLength = sqrt(horizontalX * horizontalX + horizontalY * horizontalY);
+		return horizontalLength > 0 ?
+			fabs(horizontalX * verticalY - horizontalY * verticalX) / horizontalLength :
+			sqrt(verticalX * verticalX + verticalY * verticalY);
+	}
+
 	struct CHFontInfo
 	{
 		int m_lAscent;
@@ -160,7 +172,8 @@ namespace NSHtmlRenderer
 			if (m_oLine.GetCountChars())
 				DumpLine();
 		}
-		void CommandText(const int* pUnicodes, const int* pGids, const int& nCount, const double& x, const double& y, bool bIsDumpFont)
+		void CommandText(const int* pUnicodes, const int* pGids, const int& nCount, const double& x, const double& y,
+		                 bool bIsDumpFont, const double& dSourceAdvance = 0)
 		{
 			// 1) сначала определяем точку отсчета и направление baseline
 			double _x1 = x;
@@ -187,6 +200,16 @@ namespace NSHtmlRenderer
 			double dAbsVec = sqrt((_x1 - _x2) * (_x1 - _x2) + (_y1 - _y2) * (_y1 - _y2));
 			if (dAbsVec == 0)
 				dAbsVec = 1;
+			// Text can be stretched horizontally to fit a line while keeping its
+			// original height (e.g. PLU invisible text). The ascent/descent must use
+			// the transformed vertical basis projected onto the baseline normal,
+			// not the horizontal length used for glyph advances. The cross product
+			// also excludes horizontal shear from the selection height.
+			double _vertX = x;
+			double _vertY = y + 1;
+			m_pTransform->TransformPoint(_vertX, _vertY);
+			double dNormalVec = TextSelectionNormalScale(_x2 - _x1, _y2 - _y1,
+				_vertX - _x1, _vertY - _y1);
 
 			bool bIsNewLine = true;
 			if (m_oLine.GetCountChars())
@@ -292,8 +315,8 @@ namespace NSHtmlRenderer
 				m_oFontManager.LoadCurrentFont();
 
 			double dKoef = m_oFontManager.m_pFont->Size * 25.4 / (72 * m_oFontManager.m_oCurrentInfo.m_lUnitsPerEm);
-			double dAscender  = m_oFontManager.m_oCurrentInfo.m_lAscent  * dKoef * dAbsVec;
-			double dDescender = m_oFontManager.m_oCurrentInfo.m_lDescent * dKoef * dAbsVec;
+			double dAscender  = m_oFontManager.m_oCurrentInfo.m_lAscent  * dKoef * dNormalVec;
+			double dDescender = m_oFontManager.m_oCurrentInfo.m_lDescent * dKoef * dNormalVec;
 
 			if (m_oLine.m_dAscent < dAscender)
 				m_oLine.m_dAscent = dAscender;
@@ -317,6 +340,17 @@ namespace NSHtmlRenderer
 			for (int i = 0; i < nCount; ++i)
 			{
 				double dW = m_oFontManager.MeasureString((const unsigned int*)(input + i), 1, 0, 0);
+				// The PDF specifies this glyph's advance independently of the embedded
+				// font outline. In a horizontally stretched invisible PLU layer the
+				// measured outline can differ substantially from /W, causing selection
+				// to extend beyond the printed line and inserting artificial spaces.
+				if (nCount == 1 && dSourceAdvance > 0)
+				{
+					// drawChar's advance already includes the PDF text matrix. The
+					// common width assignment below applies the horizontal transform,
+					// so divide here to avoid stretching the source advance twice.
+					dW = dSourceAdvance / dAbsVec;
+				}
 
 				NSWasm::CHChar* pChar = m_oLine.AddTail();
 				pChar->unicode = pUnicodes[i];
@@ -336,13 +370,14 @@ namespace NSHtmlRenderer
 		}
 		// Добавляет кластер: один глиф, несущий последовательность codepoint. Первый codepoint
 		// пишется как обычный символ с шириной глифа, остальные - как символы нулевой ширины.
-		void CommandTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y, bool bIsDumpFont)
+		void CommandTextCluster(const int* pUnicodes, const int& nCount, const int& nGid, const double& x, const double& y,
+		                        bool bIsDumpFont, const double& dSourceAdvance = 0)
 		{
 			if (nCount <= 0)
 				return;
 
 			int nFirstGid = nGid;
-			CommandText(pUnicodes, &nFirstGid, 1, x, y, bIsDumpFont);
+			CommandText(pUnicodes, &nFirstGid, 1, x, y, bIsDumpFont, dSourceAdvance);
 
 			if (nCount > 1)
 				AppendClusterTail(pUnicodes + 1, nCount - 1);
